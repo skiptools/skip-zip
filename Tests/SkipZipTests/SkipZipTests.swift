@@ -8,6 +8,6 @@ let logger: Logger = Logger(subsystem: "SkipZip", category: "Tests")
 final class SkipZipTests: XCTestCase {
     func testSkipZip() throws {
         logger.log("running test")
-        XCTAssertEqual(1 + 2, 4, "basic test")
+        XCTAssertEqual(1 + 2, 3, "basic test")
     }
 }
