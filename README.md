@@ -1,4 +1,4 @@
-# skip-sql
+# skip-zip
 
-SQL module for [Skip](https://skip.tools") apps.
+Zip module for [Skip](https://skip.tools") apps.
 
