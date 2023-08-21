@@ -1,3 +1,8 @@
+// Copyright 2023 Skip
+//
+// This is free software: you can redistribute and/or modify it
+// under the terms of the GNU Lesser General Public License 3.0
+// as published by the Free Software Foundation https://fsf.org
 import Swift
 import Foundation
 #if canImport(zlib)
@@ -35,13 +40,14 @@ public final class ZipArchive {
     public let url: URL
     /// Access mode for an archive file.
     public let accessMode: AccessMode
-    var archiveFile: FILEPointer
-    var endOfCentralDirectoryRecord: EndOfCentralDirectoryRecord
-    var zip64EndOfCentralDirectory: ZIP64EndOfCentralDirectory?
     var preferredEncoding: String.Encoding?
     let compressionLevel: Int?
+    #if !SKIP
+    var endOfCentralDirectoryRecord: EndOfCentralDirectoryRecord
+    var zip64EndOfCentralDirectory: ZIP64EndOfCentralDirectory?
+    var archiveFile: FILEPointer
     var memoryFile: MemoryFile?
-
+    #endif
 
     /// Initializes a new ZIP `Archive`.
     ///
@@ -64,14 +70,17 @@ public final class ZipArchive {
         self.accessMode = mode
         self.preferredEncoding = preferredEncoding
         self.compressionLevel = compressionLevel
+        #if !SKIP
         let config = try Archive.makeBackingConfiguration(for: url, mode: mode)
         self.archiveFile = config.file
         self.endOfCentralDirectoryRecord = config.endOfCentralDirectoryRecord
         self.zip64EndOfCentralDirectory = config.zip64EndOfCentralDirectory
         setvbuf(self.archiveFile, nil, _IOFBF, Int(defaultPOSIXBufferSize))
+        #endif
     }
 
 
+    #if !SKIP
     /// Initializes a new in-memory ZIP `Archive`.
     ///
     /// You can use this initalizer to create new in-memory archive files or to read and update existing ones.
@@ -101,10 +110,103 @@ public final class ZipArchive {
         self.endOfCentralDirectoryRecord = config.endOfCentralDirectoryRecord
         self.zip64EndOfCentralDirectory = config.zip64EndOfCentralDirectory
     }
+    #endif
 
     deinit {
+        #if !SKIP
         fclose(self.archiveFile)
+        #endif
     }
+
+
+    /// An error that occurs during reading, creating or updating a ZIP file.
+    public enum ArchiveError: Error {
+        /// Thrown when an archive file is either damaged or inaccessible.
+        case unreadableArchive
+        /// Thrown when an archive is either opened with AccessMode.read or the destination file is unwritable.
+        case unwritableArchive
+        /// Thrown when the path of an `Entry` cannot be stored in an archive.
+        case invalidEntryPath
+        /// Thrown when an `Entry` can't be stored in the archive with the proposed compression method.
+        case invalidCompressionMethod
+        /// Thrown when the stored checksum of an `Entry` doesn't match the checksum during reading.
+        case invalidCRC32
+        /// Thrown when an extract, add or remove operation was canceled.
+        case cancelledOperation
+        /// Thrown when an extract operation was called with zero or negative `bufferSize` parameter.
+        case invalidBufferSize
+        /// Thrown when uncompressedSize/compressedSize exceeds `Int64.max` (Imposed by file API).
+        case invalidEntrySize
+        /// Thrown when the offset of local header data exceeds `Int64.max` (Imposed by file API).
+        case invalidLocalHeaderDataOffset
+        /// Thrown when the size of local header exceeds `Int64.max` (Imposed by file API).
+        case invalidLocalHeaderSize
+        /// Thrown when the offset of central directory exceeds `Int64.max` (Imposed by file API).
+        case invalidCentralDirectoryOffset
+        /// Thrown when the size of central directory exceeds `UInt64.max` (Imposed by ZIP specification).
+        case invalidCentralDirectorySize
+        /// Thrown when number of entries in central directory exceeds `UInt64.max` (Imposed by ZIP specification).
+        case invalidCentralDirectoryEntryCount
+        /// Thrown when an archive does not contain the required End of Central Directory Record.
+        case missingEndOfCentralDirectoryRecord
+    }
+
+    /// The access mode for an `Archive`.
+    public enum AccessMode: UInt {
+        /// Indicates that a newly instantiated `Archive` should create its backing file.
+        case create
+        /// Indicates that a newly instantiated `Archive` should read from an existing backing file.
+        case read
+        /// Indicates that a newly instantiated `Archive` should update an existing backing file.
+        case update
+    }
+
+    /// The version of an `Archive`
+    enum Version: UInt16 {
+        /// The minimum version for deflate compressed archives
+        case v20 = 20
+        /// The minimum version for archives making use of ZIP64 extensions
+        case v45 = 45
+    }
+
+    struct EndOfCentralDirectoryRecord: DataSerializable {
+        let endOfCentralDirectorySignature = UInt32(endOfCentralDirectoryStructSignature)
+        let numberOfDisk: UInt16
+        let numberOfDiskStart: UInt16
+        let totalNumberOfEntriesOnDisk: UInt16
+        let totalNumberOfEntriesInCentralDirectory: UInt16
+        let sizeOfCentralDirectory: UInt32
+        let offsetToStartOfCentralDirectory: UInt32
+        let zipFileCommentLength: UInt16
+        let zipFileCommentData: Data
+        static let size = 22
+    }
+
+}
+
+/// The default chunk size when reading entry data from an archive.
+public let defaultReadChunkSize: Int64 = Int64(16*1024)
+/// The default chunk size when writing entry data to an archive.
+public let defaultWriteChunkSize: Int64 = defaultReadChunkSize
+/// The default permissions for newly added entries.
+public let defaultFilePermissions = UInt16(0o644)
+/// The default permissions for newly added directories.
+public let defaultDirectoryPermissions = UInt16(0o755)
+let defaultPOSIXBufferSize: Int64 = defaultReadChunkSize
+let defaultDirectoryUnitCount = Int64(1)
+let minEndOfCentralDirectoryOffset = Int64(22)
+let endOfCentralDirectoryStructSignature = Int64(0x06054b50)
+let localFileHeaderStructSignature = Int64(0x04034b50)
+let dataDescriptorStructSignature = Int64(0x08074b50)
+let centralDirectoryStructSignature = Int64(0x02014b50)
+let memoryURLScheme = "memory"
+
+protocol DataSerializable {
+    #if !SKIP
+    var data: Data { get }
+    static var size: Int { get }
+    init?(data: Data, additionalDataProvider: (Int) throws -> Data)
+    #endif
 }
 
 #if !SKIP
@@ -118,7 +220,7 @@ extension ZipArchive {
     }
 
     /// Extracts the data from the entry asynchronously
-    public func extractAsync(from entry: ZipArchive.Entry, bufferSize: Int = defaultReadChunkSize, skipCRC32: Bool = false, progress: Progress? = nil) -> AsyncThrowingStream<Data, Error> {
+    public func extractAsync(from entry: ZipArchive.Entry, bufferSize: Int64 = defaultReadChunkSize, skipCRC32: Bool = false, progress: Progress? = nil) -> AsyncThrowingStream<Data, Error> {
         AsyncThrowingStream { c in
 //            Task {
                 do {
@@ -185,7 +287,7 @@ public extension Data {
         var d = Data()
 
         let result = try process({ position, size in
-            self[Swift.max(start, .init(position) + start)..<Swift.min(end, .init(position) + start + size)]
+            self[Swift.max(start, .init(position) + start)..<Swift.min(end, .init(position) + start + Int(size))]
         }, { data in
             d += data
         })
@@ -210,13 +312,13 @@ extension String {
 
 @available(macOS 10.14, iOS 12.0, *)
 public extension Data {
-    @inlinable func zipZlib(level: Int, bufferSize: Int = defaultReadChunkSize, checksum: Bool = true) throws -> (crc: CRC32?, data: Data) {
+    @inlinable func zipZlib(level: Int, bufferSize: Int64 = defaultReadChunkSize, checksum: Bool = true) throws -> (crc: CRC32?, data: Data) {
         try feedData(process: { provider, consumer in
             try Data.zlibCompress(level: level, size: .init(self.count), bufferSize: bufferSize, provider: provider, consumer: consumer)
         })
     }
 
-    @inlinable func unzipZlib(bufferSize: Int = defaultReadChunkSize, checksum: Bool = true) throws -> (crc: CRC32?, data: Data) {
+    @inlinable func unzipZlib(bufferSize: Int64 = defaultReadChunkSize, checksum: Bool = true) throws -> (crc: CRC32?, data: Data) {
         try feedData(process: { provider, consumer in
             try Data.zlibDecompress(bufferSize: bufferSize, skipCRC32: !checksum, provider: provider, consumer: consumer)
         })
@@ -348,91 +450,11 @@ fileprivate typealias Archive = ZipArchive
 // SOFTWARE.
 
 
-/// The default chunk size when reading entry data from an archive.
-public let defaultReadChunkSize = Int(16*1024)
-/// The default chunk size when writing entry data to an archive.
-public let defaultWriteChunkSize = defaultReadChunkSize
-/// The default permissions for newly added entries.
-public let defaultFilePermissions = UInt16(0o644)
-/// The default permissions for newly added directories.
-public let defaultDirectoryPermissions = UInt16(0o755)
-let defaultPOSIXBufferSize = defaultReadChunkSize
-let defaultDirectoryUnitCount = Int64(1)
-let minEndOfCentralDirectoryOffset = Int64(22)
-let endOfCentralDirectoryStructSignature = 0x06054b50
-let localFileHeaderStructSignature = 0x04034b50
-let dataDescriptorStructSignature = 0x08074b50
-let centralDirectoryStructSignature = 0x02014b50
-let memoryURLScheme = "memory"
-
 extension ZipArchive: Sequence {
     typealias LocalFileHeader = Entry.LocalFileHeader
     typealias DataDescriptor = Entry.DefaultDataDescriptor
     typealias ZIP64DataDescriptor = Entry.ZIP64DataDescriptor
     typealias CentralDirectoryStructure = Entry.CentralDirectoryStructure
-
-    /// An error that occurs during reading, creating or updating a ZIP file.
-    public enum ArchiveError: Error {
-        /// Thrown when an archive file is either damaged or inaccessible.
-        case unreadableArchive
-        /// Thrown when an archive is either opened with AccessMode.read or the destination file is unwritable.
-        case unwritableArchive
-        /// Thrown when the path of an `Entry` cannot be stored in an archive.
-        case invalidEntryPath
-        /// Thrown when an `Entry` can't be stored in the archive with the proposed compression method.
-        case invalidCompressionMethod
-        /// Thrown when the stored checksum of an `Entry` doesn't match the checksum during reading.
-        case invalidCRC32
-        /// Thrown when an extract, add or remove operation was canceled.
-        case cancelledOperation
-        /// Thrown when an extract operation was called with zero or negative `bufferSize` parameter.
-        case invalidBufferSize
-        /// Thrown when uncompressedSize/compressedSize exceeds `Int64.max` (Imposed by file API).
-        case invalidEntrySize
-        /// Thrown when the offset of local header data exceeds `Int64.max` (Imposed by file API).
-        case invalidLocalHeaderDataOffset
-        /// Thrown when the size of local header exceeds `Int64.max` (Imposed by file API).
-        case invalidLocalHeaderSize
-        /// Thrown when the offset of central directory exceeds `Int64.max` (Imposed by file API).
-        case invalidCentralDirectoryOffset
-        /// Thrown when the size of central directory exceeds `UInt64.max` (Imposed by ZIP specification).
-        case invalidCentralDirectorySize
-        /// Thrown when number of entries in central directory exceeds `UInt64.max` (Imposed by ZIP specification).
-        case invalidCentralDirectoryEntryCount
-        /// Thrown when an archive does not contain the required End of Central Directory Record.
-        case missingEndOfCentralDirectoryRecord
-    }
-
-    /// The access mode for an `Archive`.
-    public enum AccessMode: UInt {
-        /// Indicates that a newly instantiated `Archive` should create its backing file.
-        case create
-        /// Indicates that a newly instantiated `Archive` should read from an existing backing file.
-        case read
-        /// Indicates that a newly instantiated `Archive` should update an existing backing file.
-        case update
-    }
-
-    /// The version of an `Archive`
-    enum Version: UInt16 {
-        /// The minimum version for deflate compressed archives
-        case v20 = 20
-        /// The minimum version for archives making use of ZIP64 extensions
-        case v45 = 45
-    }
-
-    struct EndOfCentralDirectoryRecord: DataSerializable {
-        let endOfCentralDirectorySignature = UInt32(endOfCentralDirectoryStructSignature)
-        let numberOfDisk: UInt16
-        let numberOfDiskStart: UInt16
-        let totalNumberOfEntriesOnDisk: UInt16
-        let totalNumberOfEntriesInCentralDirectory: UInt16
-        let sizeOfCentralDirectory: UInt32
-        let offsetToStartOfCentralDirectory: UInt32
-        let zipFileCommentLength: UInt16
-        let zipFileCommentData: Data
-        static let size = 22
-    }
 
     var totalNumberOfEntriesInCentralDirectory: UInt64 {
         zip64EndOfCentralDirectory?.record.totalNumberOfEntriesInCentralDirectory
@@ -1222,8 +1244,6 @@ extension Date {
 
 
 
-#if swift(>=4.2)
-#else
 
 #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
 #else
@@ -1243,7 +1263,6 @@ public extension CocoaError {
 }
 
 #endif
-#endif
 
 
 
@@ -1261,7 +1280,7 @@ public extension URL {
 extension URL {
 
     static func temporaryReplacementDirectoryURL(for archive: ZipArchive) -> URL {
-        #if swift(>=5.0) || os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+        #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
         if archive.url.isFileURL,
            let tempDir = try? FileManager().url(for: .itemReplacementDirectory, in: .userDomainMask,
                                                 appropriateFor: archive.url, create: true) {
@@ -1606,12 +1625,6 @@ public typealias FILEPointer = OpaquePointer
 public typealias FILEPointer = UnsafeMutablePointer<FILE>
 #endif
 
-protocol DataSerializable {
-    static var size: Int { get }
-    init?(data: Data, additionalDataProvider: (Int) throws -> Data)
-    var data: Data { get }
-}
-
 extension Data {
     enum DataError: Error {
         case unreadableFile
@@ -1620,27 +1633,23 @@ extension Data {
 
     func scanValue<T>(start: Int) -> T {
         let subdata = self.subdata(in: start..<start+MemoryLayout<T>.size)
-        #if swift(>=5.0)
         return subdata.withUnsafeBytes { $0.load(as: T.self) }
-        #else
-        return subdata.withUnsafeBytes { $0.pointee }
-        #endif
     }
 
     static func readStruct<T>(from file: FILEPointer, at offset: UInt64)
     -> T? where T: DataSerializable {
         guard offset <= .max else { return nil }
         fseeko(file, off_t(offset), SEEK_SET)
-        guard let data = try? self.readChunk(of: T.size, from: file) else {
+        guard let data = try? self.readChunk(of: Int64(T.size), from: file) else {
             return nil
         }
         let structure = T(data: data, additionalDataProvider: { (additionalDataSize) -> Data in
-            return try self.readChunk(of: additionalDataSize, from: file)
+            return try self.readChunk(of: Int64(additionalDataSize), from: file)
         })
         return structure
     }
 
-    static func consumePart(of size: Int64, chunkSize: Int, skipCRC32: Bool = false,
+    static func consumePart(of size: Int64, chunkSize: Int64, skipCRC32: Bool = false,
                             provider: Provider, consumer: Consumer) throws -> CRC32 {
         var checksum = CRC32(0)
         guard size > 0 else {
@@ -1649,11 +1658,11 @@ extension Data {
         }
 
         let readInOneChunk = (size < chunkSize)
-        var chunkSize = readInOneChunk ? Int(size) : chunkSize
+        var chunkSize = readInOneChunk ? Int64(size) : chunkSize
         var bytesRead: Int64 = 0
         while bytesRead < size {
             let remainingSize = size - bytesRead
-            chunkSize = remainingSize < chunkSize ? Int(remainingSize) : chunkSize
+            chunkSize = remainingSize < chunkSize ? Int64(remainingSize) : chunkSize
             let data = try provider(bytesRead, chunkSize)
             try consumer(data)
             if !skipCRC32 {
@@ -1664,27 +1673,18 @@ extension Data {
         return checksum
     }
 
-    static func readChunk(of size: Int, from file: FILEPointer) throws -> Data {
+    static func readChunk(of size: Int64, from file: FILEPointer) throws -> Data {
         let alignment = MemoryLayout<UInt>.alignment
-        #if swift(>=4.1)
-        let bytes = UnsafeMutableRawPointer.allocate(byteCount: size, alignment: alignment)
-        #else
-        let bytes = UnsafeMutableRawPointer.allocate(bytes: size, alignedTo: alignment)
-        #endif
-        let bytesRead = fread(bytes, 1, size, file)
+        let bytes = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: alignment)
+        let bytesRead = fread(bytes, 1, Int(size), file)
         let error = ferror(file)
         if error > 0 {
             throw DataError.unreadableFile
         }
-        #if swift(>=4.1)
         return Data(bytesNoCopy: bytes, count: bytesRead, deallocator: .custom({ buf, _ in buf.deallocate() }))
-        #else
-        let deallocator = Deallocator.custom({ buf, _ in buf.deallocate(bytes: size, alignedTo: 1) })
-        return Data(bytesNoCopy: bytes, count: bytesRead, deallocator: deallocator)
-        #endif
     }
 
-    static func write(chunk: Data, to file: FILEPointer) throws -> Int {
+    static func write(chunk: Data, to file: FILEPointer) throws -> Int64 {
         var sizeWritten: Int = 0
         chunk.withUnsafeBytes { (rawBufferPointer) in
             if let baseAddress = rawBufferPointer.baseAddress, rawBufferPointer.count > 0 {
@@ -1696,10 +1696,10 @@ extension Data {
         if error > 0 {
             throw DataError.unwritableFile
         }
-        return sizeWritten
+        return Int64(sizeWritten)
     }
 
-    static func writeLargeChunk(_ chunk: Data, size: UInt64, bufferSize: Int,
+    static func writeLargeChunk(_ chunk: Data, size: UInt64, bufferSize: Int64,
                                 to file: FILEPointer) throws -> UInt64 {
         var sizeWritten: UInt64 = 0
         chunk.withUnsafeBytes { (rawBufferPointer) in
@@ -1708,9 +1708,9 @@ extension Data {
 
                 while sizeWritten < size {
                     let remainingSize = size - sizeWritten
-                    let chunkSize = Swift.min(Int(remainingSize), bufferSize)
+                    let chunkSize = Swift.min(Int64(remainingSize), bufferSize)
                     let curPointer = pointer.advanced(by: Int(sizeWritten))
-                    fwrite(curPointer, 1, chunkSize, file)
+                    fwrite(curPointer, 1, Int(chunkSize), file)
                     sizeWritten += UInt64(chunkSize)
                 }
             }
@@ -1729,8 +1729,6 @@ extension Data {
 extension ZipArchive {
     var isMemoryArchive: Bool { return self.url.scheme == memoryURLScheme }
 }
-
-#if swift(>=5.0)
 
 extension ZipArchive {
     /// Returns a `Data` object containing a representation of the receiver.
@@ -1839,36 +1837,6 @@ private func seekStub(_ cookie: UnsafeMutableRawPointer?,
     return fpos_t(fileFromCookie(cookie: cookie).seek(offset: Int(offset), whence: whence))
 }
 
-#else
-private func readStub(_ cookie: UnsafeMutableRawPointer?,
-                      _ bytePtr: UnsafeMutablePointer<Int8>?,
-                      _ count: Int) -> Int {
-    guard let cookie = cookie, let bytePtr = bytePtr else { return 0 }
-    return fileFromCookie(cookie: cookie).readData(
-        buffer: UnsafeMutableRawBufferPointer(start: bytePtr, count: count))
-}
-
-private func writeStub(_ cookie: UnsafeMutableRawPointer?,
-                       _ bytePtr: UnsafePointer<Int8>?,
-                       _ count: Int) -> Int {
-    guard let cookie = cookie, let bytePtr = bytePtr else { return 0 }
-    return fileFromCookie(cookie: cookie).writeData(
-        buffer: UnsafeRawBufferPointer(start: bytePtr, count: count))
-}
-
-private func seekStub(_ cookie: UnsafeMutableRawPointer?,
-                      _ offset: UnsafeMutablePointer<Int>?,
-                      _ whence: Int32) -> Int32 {
-    guard let cookie = cookie, let offset = offset else { return 0 }
-    let result = fileFromCookie(cookie: cookie).seek(offset: Int(offset.pointee), whence: whence)
-    if result >= 0 {
-        offset.pointee = result
-        return 0
-    } else {
-        return -1
-    }
-}
-#endif
 #endif
 
 // MARK: Archive+Progress.swift
@@ -1955,7 +1923,7 @@ public typealias Consumer = (_ data: Data) throws -> Void
 ///   - size: The size of the chunk to provide.
 /// - Returns: A chunk of `Data`.
 /// - Throws: Can throw to indicate errors in the data source.
-public typealias Provider = (_ position: Int64, _ size: Int) throws -> Data
+public typealias Provider = (_ position: Int64, _ size: Int64) throws -> Data
 
 
 extension Data {
@@ -1979,7 +1947,7 @@ extension Data {
     ///   - provider: A closure that accepts a position and a chunk size. Returns a `Data` chunk.
     ///   - consumer: A closure that processes the result of the compress operation.
     /// - Returns: The checksum of the processed content.
-    public static func compress(level: Int?, size: Int64, bufferSize: Int, provider: Provider, consumer: Consumer) throws -> CRC32 {
+    public static func compress(level: Int?, size: Int64, bufferSize: Int64, provider: Provider, consumer: Consumer) throws -> CRC32 {
         return try self.zlibCompress(level: level, size: size, bufferSize: bufferSize, provider: provider, consumer: consumer)
     }
 
@@ -1991,14 +1959,14 @@ extension Data {
     ///   - provider: A closure that accepts a position and a chunk size. Returns a `Data` chunk.
     ///   - consumer: A closure that processes the result of the decompress operation.
     /// - Returns: The checksum of the processed content.
-    public static func decompress(size: Int64, bufferSize: Int, skipCRC32: Bool,
+    public static func decompress(size: Int64, bufferSize: Int64, skipCRC32: Bool,
                                   provider: Provider, consumer: Consumer) throws -> CRC32? {
         return try self.zlibDecompress(bufferSize: bufferSize, skipCRC32: skipCRC32, provider: provider, consumer: consumer)
     }
 }
 
 extension Data {
-    @inlinable static func zlibCompress(level: Int?, size: Int64, bufferSize: Int, provider: Provider, consumer: Consumer) throws -> CRC32 {
+    @inlinable static func zlibCompress(level: Int?, size: Int64, bufferSize: Int64, provider: Provider, consumer: Consumer) throws -> CRC32 {
         let compressionLevel = level == nil ? Z_DEFAULT_COMPRESSION : Swift.max(-1, Swift.min(9, Int32((level ?? -1))))
 
         var stream = z_stream()
@@ -2011,7 +1979,7 @@ extension Data {
         var position: Int64 = 0
         var zipCRC32 = CRC32(0)
         repeat {
-            let readSize = Int(Swift.min((size - position), Int64(bufferSize)))
+            let readSize = Int64(Swift.min((size - position), Int64(bufferSize)))
             var inputChunk = try provider(position, readSize)
             zipCRC32 = inputChunk.crc32(checksum: zipCRC32)
             stream.avail_in = UInt32(inputChunk.count)
@@ -2026,7 +1994,7 @@ extension Data {
                     stream.next_in = nil
                     flush = Z_FINISH
                 }
-                var outputChunk = Data(count: bufferSize)
+                var outputChunk = Data(count: Int(bufferSize))
                 repeat {
                     stream.avail_out = UInt32(bufferSize)
                     try outputChunk.withUnsafeMutableBytes { (rawBufferPointer) in
@@ -2039,7 +2007,7 @@ extension Data {
                     }
                     guard result >= Z_OK else { throw CompressionError.corruptedData }
 
-                    outputChunk.count = bufferSize - Int(stream.avail_out)
+                    outputChunk.count = Int(bufferSize) - Int(stream.avail_out)
                     try consumer(outputChunk)
                 } while stream.avail_out == 0
             }
@@ -2048,13 +2016,13 @@ extension Data {
         return zipCRC32
     }
 
-    @inlinable static func zlibUnpackSegment(_ rawBufferPointer: UnsafeMutableRawBufferPointer, stream: inout z_stream, result: inout Int32, size: Int, unzipCRC32: CRC32?, consumer: Consumer) throws -> CRC32? {
+    @inlinable static func zlibUnpackSegment(_ rawBufferPointer: UnsafeMutableRawBufferPointer, stream: inout z_stream, result: inout Int32, size: Int64, unzipCRC32: CRC32?, consumer: Consumer) throws -> CRC32? {
         var unzipCRC32 = unzipCRC32
         if let baseAddress = rawBufferPointer.baseAddress, rawBufferPointer.count > 0 {
             let pointer = baseAddress.assumingMemoryBound(to: UInt8.self)
             stream.next_in = pointer
             repeat {
-                var outputData = Data(count: size)
+                var outputData = Data(count: Int(size))
                 stream.avail_out = UInt32(size)
                 try outputData.withUnsafeMutableBytes { (rawBufferPointer) in
                     if let baseAddress = rawBufferPointer.baseAddress, rawBufferPointer.count > 0 {
@@ -2081,7 +2049,7 @@ extension Data {
         return unzipCRC32
     }
 
-    @inlinable static func zlibDecompress(bufferSize: Int, skipCRC32: Bool, provider: Provider, consumer: Consumer) throws -> CRC32? {
+    @inlinable static func zlibDecompress(bufferSize: Int64, skipCRC32: Bool, provider: Provider, consumer: Consumer) throws -> CRC32? {
         var stream = z_stream()
         let streamSize = Int32(MemoryLayout<z_stream>.size)
         var result = inflateInit2_(&stream, -MAX_WBITS, ZLIB_VERSION, streamSize)
@@ -2152,7 +2120,6 @@ extension Data {
         // https://bugs.swift.org/browse/SR-1774
         let mask = 0xffffffff as CRC32
         var result = checksum ^ mask
-#if swift(>=5.0)
         crcTable.withUnsafeBufferPointer { crcTablePointer in
             self.withUnsafeBytes { bufferPointer in
                 var bufferIndex = 0
@@ -2164,54 +2131,9 @@ extension Data {
                 }
             }
         }
-#else
-        self.withUnsafeBytes { (bytes) in
-            let bins = stride(from: 0, to: self.count, by: 256)
-            for bin in bins {
-                for binIndex in 0..<256 {
-                    let byteIndex = bin + binIndex
-                    guard byteIndex < self.count else { break }
-
-                    let byte = bytes[byteIndex]
-                    let index = Int((result ^ CRC32(byte)) & 0xff)
-                    result = (result >> 8) ^ crcTable[index]
-                }
-            }
-        }
-#endif
         return result ^ mask
     }
 }
-
-#if !swift(>=5.0)
-
-// Since Swift 5.0, `Data.withUnsafeBytes()` passes an `UnsafeRawBufferPointer` instead of an `UnsafePointer<UInt8>`
-// into `body`.
-// We provide a compatible method for targets that use Swift 4.x so that we can use the new version
-// across all language versions.
-
-extension Data {
-    func withUnsafeBytes<T>(_ body: (UnsafeRawBufferPointer) throws -> T) rethrows -> T {
-        let count = self.count
-        return try withUnsafeBytes { (pointer: UnsafePointer<UInt8>) throws -> T in
-            try body(UnsafeRawBufferPointer(start: pointer, count: count))
-        }
-    }
-
-    #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
-    #else
-    mutating func withUnsafeMutableBytes<T>(_ body: (UnsafeMutableRawBufferPointer) throws -> T) rethrows -> T {
-        let count = self.count
-        guard count > 0 else {
-            return try body(UnsafeMutableRawBufferPointer(start: nil, count: count))
-        }
-        return try withUnsafeMutableBytes { (pointer: UnsafeMutablePointer<UInt8>) throws -> T in
-            try body(UnsafeMutableRawBufferPointer(start: pointer, count: count))
-        }
-    }
-    #endif
-}
-#endif
 
 
 // MARK: Archive+ZIP64.swift
@@ -2383,7 +2305,7 @@ extension ZipArchive {
     /// - Throws: An error if the source file cannot be read or the receiver is not writable.
     public func addEntry(with path: String, relativeTo baseURL: URL,
                          compressionMethod: CompressionMethod = .none,
-                         bufferSize: Int = defaultWriteChunkSize, progress: Progress? = nil) throws {
+                         bufferSize: Int64 = defaultWriteChunkSize, progress: Progress? = nil) throws {
         let fileURL = baseURL.appendingPathComponent(path)
 
         try self.addEntry(with: path, fileURL: fileURL, compressionMethod: compressionMethod,
@@ -2401,7 +2323,7 @@ extension ZipArchive {
     ///   - progress: A progress object that can be used to track or cancel the add operation.
     /// - Throws: An error if the source file cannot be read or the receiver is not writable.
     public func addEntry(with path: String, fileURL: URL, compressionMethod: CompressionMethod = .none,
-                         bufferSize: Int = defaultWriteChunkSize, progress: Progress? = nil) throws {
+                         bufferSize: Int64 = defaultWriteChunkSize, progress: Progress? = nil) throws {
         let fileManager = FileManager()
         guard fileManager.itemExists(at: fileURL) else {
             throw CocoaError(.fileReadNoSuchFile, userInfo: [NSFilePathErrorKey: fileURL.path])
@@ -2467,7 +2389,7 @@ extension ZipArchive {
     /// - Throws: An error if the source data is invalid or the receiver is not writable.
     public func addEntry(with path: String, type: Entry.EntryType, uncompressedSize: Int64,
                          modificationDate: Date = Date(), permissions: UInt16? = nil,
-                         compressionMethod: CompressionMethod = .none, bufferSize: Int = defaultWriteChunkSize,
+                         compressionMethod: CompressionMethod = .none, bufferSize: Int64 = defaultWriteChunkSize,
                          progress: Progress? = nil, provider: Provider) throws {
         guard self.accessMode != .read else { throw ArchiveError.unwritableArchive }
         // Directories and symlinks cannot be compressed
@@ -2478,7 +2400,7 @@ extension ZipArchive {
         var startOfCD = Int64(self.offsetToStartOfCentralDirectory)
         fseeko(self.archiveFile, off_t(startOfCD), SEEK_SET)
         let existingSize = self.sizeOfCentralDirectory
-        let existingData = try Data.readChunk(of: Int(existingSize), from: self.archiveFile)
+        let existingData = try Data.readChunk(of: Int64(existingSize), from: self.archiveFile)
         fseeko(self.archiveFile, off_t(startOfCD), SEEK_SET)
         let fileHeaderStart = Int64(ftello(self.archiveFile))
         let modDateTime = modificationDate.fileModificationDateTime
@@ -2525,7 +2447,7 @@ extension ZipArchive {
     ///   - bufferSize: The maximum size for the read and write buffers used during removal.
     ///   - progress: A progress object that can be used to track or cancel the remove operation.
     /// - Throws: An error if the `Entry` is malformed or the receiver is not writable.
-    public func remove(_ entry: Entry, bufferSize: Int = defaultReadChunkSize, progress: Progress? = nil) throws {
+    public func remove(_ entry: Entry, bufferSize: Int64 = defaultReadChunkSize, progress: Progress? = nil) throws {
         guard self.accessMode != .read else { throw ArchiveError.unwritableArchive }
         let (tempArchive, tempDir) = try self.makeTempArchive()
         defer { tempDir.map { try? FileManager().removeItem(at: $0) } }
@@ -2572,7 +2494,6 @@ extension ZipArchive {
     func replaceCurrentArchive(with archive: ZipArchive) throws {
         fclose(self.archiveFile)
         if self.isMemoryArchive {
-            #if swift(>=5.0)
             guard let data = archive.data,
                   let config = Archive.makeBackingConfiguration(for: data, mode: .update) else {
                 throw ArchiveError.unwritableArchive
@@ -2581,7 +2502,6 @@ extension ZipArchive {
             self.memoryFile = config.memoryFile
             self.endOfCentralDirectoryRecord = config.endOfCentralDirectoryRecord
             self.zip64EndOfCentralDirectory = config.zip64EndOfCentralDirectory
-            #endif
         } else {
             let fileManager = FileManager()
             #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
@@ -2617,7 +2537,7 @@ private extension ZipArchive {
     }
 
     func rollback(_ localFileHeaderStart: UInt64, _ existingCentralDirectory: (data: Data, size: UInt64),
-                  _ bufferSize: Int, _ endOfCentralDirRecord: EndOfCentralDirectoryRecord,
+                  _ bufferSize: Int64, _ endOfCentralDirRecord: EndOfCentralDirectoryRecord,
                   _ zip64EndOfCentralDirectory: ZIP64EndOfCentralDirectory?) throws {
         fflush(self.archiveFile)
         ftruncate(fileno(self.archiveFile), off_t(localFileHeaderStart))
@@ -2635,15 +2555,11 @@ private extension ZipArchive {
         var archive: Archive
         var url: URL?
         if self.isMemoryArchive {
-            #if swift(>=5.0)
             guard let tempArchive = Archive(data: Data(), accessMode: .create,
                                             preferredEncoding: self.preferredEncoding) else {
                 throw ArchiveError.unwritableArchive
             }
             archive = tempArchive
-            #else
-            fatalError("Memory archives are unsupported.")
-            #endif
         } else {
             let manager = FileManager()
             let tempDir = URL.temporaryReplacementDirectoryURL(for: self)
@@ -2675,7 +2591,7 @@ extension ZipArchive {
     ///   - progress: A progress object that can be used to track or cancel the extract operation.
     /// - Returns: The checksum of the processed content or 0 if the `skipCRC32` flag was set to `true`.
     /// - Throws: An error if the destination file cannot be written or the entry contains malformed content.
-    public func extract(_ entry: Entry, to url: URL, bufferSize: Int = defaultReadChunkSize, overwrite: Bool = false, skipCRC32: Bool = false,
+    public func extract(_ entry: Entry, to url: URL, bufferSize: Int64 = defaultReadChunkSize, overwrite: Bool = false, skipCRC32: Bool = false,
                         progress: Progress? = nil) throws -> CRC32 {
         guard bufferSize > 0 else {
             throw ArchiveError.invalidBufferSize
@@ -2741,7 +2657,7 @@ extension ZipArchive {
     ///   - consumer: A closure that consumes contents of `Entry` as `Data` chunks.
     /// - Returns: The checksum of the processed content or 0 if the `skipCRC32` flag was set to `true`..
     /// - Throws: An error if the destination file cannot be written or the entry contains malformed content.
-    public func extract(_ entry: Entry, bufferSize: Int = defaultReadChunkSize, skipCRC32: Bool = false,
+    public func extract(_ entry: Entry, bufferSize: Int64 = defaultReadChunkSize, skipCRC32: Bool = false,
                         progress: Progress? = nil, consumer: Consumer) throws -> CRC32 {
         guard bufferSize > 0 else {
             throw ArchiveError.invalidBufferSize
@@ -2767,7 +2683,7 @@ extension ZipArchive {
             progress?.completedUnitCount = self.totalUnitCountForReading(entry)
         case .symlink:
             let localFileHeader = entry.localFileHeader
-            let size = Int(localFileHeader.compressedSize)
+            let size = Int64(localFileHeader.compressedSize)
             let data = try Data.readChunk(of: size, from: self.archiveFile)
             checksum = data.crc32(checksum: 0)
             try consumer(data)
@@ -2783,7 +2699,7 @@ extension ZipArchive {
 
     // MARK: - Reading
 
-    func readUncompressed(entry: Entry, bufferSize: Int, skipCRC32: Bool,
+    func readUncompressed(entry: Entry, bufferSize: Int64, skipCRC32: Bool,
                           progress: Progress? = nil, with consumer: Consumer) throws -> CRC32 {
         let size = entry.centralDirectoryStructure.effectiveUncompressedSize
         guard size <= .max else { throw ArchiveError.invalidEntrySize }
@@ -2797,7 +2713,7 @@ extension ZipArchive {
                                     })
     }
 
-    func readCompressed(entry: Entry, bufferSize: Int, skipCRC32: Bool, progress: Progress? = nil, with consumer: Consumer) throws -> CRC32? {
+    func readCompressed(entry: Entry, bufferSize: Int64, skipCRC32: Bool, progress: Progress? = nil, with consumer: Consumer) throws -> CRC32? {
         let size = entry.centralDirectoryStructure.effectiveCompressedSize
         guard size <= .max else { throw ArchiveError.invalidEntrySize }
         return try Data.decompress(size: Int64(size), bufferSize: bufferSize, skipCRC32: skipCRC32,
@@ -2813,7 +2729,7 @@ extension ZipArchive {
     // MARK: - Writing
 
     func writeEntry(uncompressedSize: Int64, type: Entry.EntryType,
-                    compressionMethod: CompressionMethod, bufferSize: Int, progress: Progress? = nil,
+                    compressionMethod: CompressionMethod, bufferSize: Int64, progress: Progress? = nil,
                     provider: Provider) throws -> (sizeWritten: Int64, crc32: CRC32) {
         var checksum = CRC32(0)
         var sizeWritten = Int64(0)
@@ -2834,7 +2750,7 @@ extension ZipArchive {
             _ = try provider(0, 0)
             if let progress = progress { progress.completedUnitCount = progress.totalUnitCount }
         case .symlink:
-            let (linkSizeWritten, linkChecksum) = try self.writeSymbolicLink(size: Int(uncompressedSize),
+            let (linkSizeWritten, linkChecksum) = try self.writeSymbolicLink(size: Int64(uncompressedSize),
                                                                              provider: provider)
             (sizeWritten, checksum) = (Int64(linkSizeWritten), linkChecksum)
             if let progress = progress { progress.completedUnitCount = progress.totalUnitCount }
@@ -2975,14 +2891,14 @@ extension ZipArchive {
         return (record, zip64EOCD)
     }
 
-    func writeUncompressed(size: Int64, bufferSize: Int, progress: Progress? = nil,
+    func writeUncompressed(size: Int64, bufferSize: Int64, progress: Progress? = nil,
                            provider: Provider) throws -> (sizeWritten: Int64, checksum: CRC32) {
         var position: Int64 = 0
         var sizeWritten: Int64 = 0
         var checksum = CRC32(0)
         while position < size {
             if progress?.isCancelled == true { throw ArchiveError.cancelledOperation }
-            let readSize = (size - position) >= bufferSize ? bufferSize : Int(size - position)
+            let readSize = (size - position) >= bufferSize ? bufferSize : Int64(size - position)
             let entryChunk = try provider(position, readSize)
             checksum = entryChunk.crc32(checksum: checksum)
             sizeWritten += Int64(try Data.write(chunk: entryChunk, to: self.archiveFile))
@@ -2992,7 +2908,7 @@ extension ZipArchive {
         return (sizeWritten, checksum)
     }
 
-    func writeCompressed(size: Int64, bufferSize: Int, level: Int?, progress: Progress? = nil,
+    func writeCompressed(size: Int64, bufferSize: Int64, level: Int?, progress: Progress? = nil,
                          provider: Provider) throws -> (sizeWritten: Int64, checksum: CRC32) {
         var sizeWritten: Int64 = 0
         let consumer: Consumer = { data in sizeWritten += Int64(try Data.write(chunk: data, to: self.archiveFile)) }
@@ -3006,7 +2922,7 @@ extension ZipArchive {
         return(sizeWritten, checksum)
     }
 
-    func writeSymbolicLink(size: Int, provider: Provider) throws -> (sizeWritten: Int, checksum: CRC32) {
+    func writeSymbolicLink(size: Int64, provider: Provider) throws -> (sizeWritten: Int64, checksum: CRC32) {
         // The reported size of a symlink is the number of characters in the path it points to.
         let linkData = try provider(0, size)
         let checksum = linkData.crc32(checksum: 0)
@@ -3057,7 +2973,6 @@ extension ZipArchive {
         let file: FILEPointer
         let endOfCentralDirectoryRecord: EndOfCentralDirectoryRecord
         let zip64EndOfCentralDirectory: ZIP64EndOfCentralDirectory?
-        #if swift(>=5.0)
         let memoryFile: MemoryFile?
 
         init(file: FILEPointer,
@@ -3069,16 +2984,6 @@ extension ZipArchive {
             self.zip64EndOfCentralDirectory = zip64EndOfCentralDirectory
             self.memoryFile = memoryFile
         }
-        #else
-
-        init(file: FILEPointer,
-             endOfCentralDirectoryRecord: EndOfCentralDirectoryRecord,
-             zip64EndOfCentralDirectory: ZIP64EndOfCentralDirectory?) {
-            self.file = file
-            self.endOfCentralDirectoryRecord = endOfCentralDirectoryRecord
-            self.zip64EndOfCentralDirectory = zip64EndOfCentralDirectory
-        }
-        #endif
     }
 
     static func makeBackingConfiguration(for url: URL, mode: AccessMode) throws
@@ -3117,7 +3022,6 @@ extension ZipArchive {
         }
     }
 
-    #if swift(>=5.0)
     static func makeBackingConfiguration(for data: Data, mode: AccessMode)
     -> BackingConfiguration? {
         let posixMode: String
@@ -3163,7 +3067,6 @@ extension ZipArchive {
                                         memoryFile: memoryFile)
         }
     }
-    #endif
 }
 #endif
 
