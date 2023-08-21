@@ -1,4 +1,4 @@
-name: skip-sql
+name: skip-zip
 on:
   push:
     branches: '*'
