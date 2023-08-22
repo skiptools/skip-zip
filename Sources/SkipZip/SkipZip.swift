@@ -43,7 +43,7 @@ public extension Data {
         let crc = java.util.zip.CRC32()
         crc.update(platformData)
 
-        return (crc.value?.toUInt(), Data(platformValue: outputStream.toByteArray()))
+        return (crc: crc.value?.toUInt(), data: Data(platformValue: outputStream.toByteArray()))
         #endif
     }
 
@@ -62,7 +62,27 @@ public extension Data {
 
         return try data.unzipZlib(checksum: checksum)
         #else
-        fatalError("TODO")
+        let inflater = java.util.zip.Inflater(!header)
+        inflater.setInput(platformData)
+
+        let outputStream = java.io.ByteArrayOutputStream()
+        let buffer = ByteArray(Int(defaultReadChunkSize))
+
+        while (!inflater.finished()) {
+            let count = inflater.inflate(buffer)
+            outputStream.write(buffer, 0, count)
+        }
+
+        outputStream.close()
+        let decompressedBytes = outputStream.toByteArray()
+
+        var crc32: java.util.zip.CRC32? = nil
+        if checksum {
+            crc32 = java.util.zip.CRC32()
+            crc32?.update(decompressedBytes)
+        }
+
+        return (crc: crc32?.value?.toUInt(), data: Data(platformValue: outputStream.toByteArray()))
         #endif
     }
 }
