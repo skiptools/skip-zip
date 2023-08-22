@@ -9,6 +9,80 @@ import Foundation
 import zlib
 #endif
 
+
+@available(macOS 10.14, iOS 12.0, *)
+public extension Data {
+    /// Compresses the data using the deflate algorithm and makes it comply to the zlib format.
+    /// Note that this only creates an individual deflated blob; for multi-file zip support use `ZipArchive` instead.
+    /// - Parameters:
+    ///   - level: the zip level to encode
+    ///   - checksum: if true verify the compression checksum
+    ///   - wrap: whether to wrap in zlib headers with the compression level and a suffix as the adler32
+    func deflate(level: Int? = nil, checksum: Bool = true, wrap: Bool = false) throws -> (crc: CRC32?, data: Data) {
+        #if !SKIP
+        func headers(_ source: (crc: CRC32?, data: Data)) -> (crc: CRC32?, data: Data) {
+            if !wrap { return source }
+            return (source.crc, Data([0x78, level == nil ? 0x9C : (level! <= 5) ? 0x01 : 0xDA]) + source.data + Data.adler32Data(self))
+        }
+        return try headers(zipZlib(level: level ?? 5)) // fall back to zlib default compression level 5
+        #else
+        let deflater = java.util.zip.Deflater(level ?? java.util.zip.Deflater.DEFAULT_COMPRESSION, !wrap)
+        deflater.setInput(platformData)
+        deflater.finish()
+
+        let outputStream = java.io.ByteArrayOutputStream()
+        let buffer = ByteArray(Int(defaultReadChunkSize))
+
+        while (!deflater.finished()) {
+            let count = deflater.deflate(buffer)
+            outputStream.write(buffer, 0, count)
+        }
+
+        outputStream.close()
+
+        let crc = java.util.zip.CRC32()
+        crc.update(platformData)
+
+        return (crc.value?.toUInt(), Data(platformValue: outputStream.toByteArray()))
+        #endif
+    }
+
+    /// Decompresses the data using the zlib deflate algorithm.
+    /// Note that this only creates an individual inflated blob; for multi-file zip support use `ZipArchive` instead.
+    func inflate(checksum: Bool = true, wrapped header: Bool = false) throws -> (crc: CRC32?, data: Data) {
+        #if !SKIP
+        let head = self.prefix(header ? 2 : 0)
+        if head.count == 2 {
+            if head[0] != 0x78 {
+                throw Archive.ArchiveError.unreadableArchive
+            }
+        }
+
+        let data = self.dropFirst(head.count)
+
+        return try data.unzipZlib(checksum: checksum)
+        #else
+        fatalError("TODO")
+        #endif
+    }
+}
+
+/// An unsigned 32-Bit Integer representing a checksum.
+public typealias CRC32 = UInt32
+/// A custom handler that consumes a `Data` object containing partial entry data.
+/// - Parameters:
+///   - data: A chunk of `Data` to consume.
+/// - Throws: Can throw to indicate errors during data consumption.
+public typealias Consumer = (_ data: Data) throws -> Void
+/// A custom handler that receives a position and a size that can be used to provide data from an arbitrary source.
+/// - Parameters:
+///   - position: The current read position.
+///   - size: The size of the chunk to provide.
+/// - Returns: A chunk of `Data`.
+/// - Throws: Can throw to indicate errors in the data source.
+public typealias Provider = (_ position: Int64, _ size: Int64) throws -> Data
+
+
 /// A sequence of uncompressed or compressed ZIP entries.
 ///
 /// You use an `Archive` to create, read or update ZIP files.
@@ -238,48 +312,7 @@ extension ZipArchive {
 }
 
 @available(macOS 10.14, iOS 12.0, *)
-public extension Data {
-    enum CompressionAlgorithm : String, CaseIterable, Codable {
-        case zlib
-        case lz4
-        case lzma
-        case lzfse
-    }
-
-    /// Compresses the data using the deflate algorithm and makes it comply to the zlib format.
-    /// Note that this only creates an individual deflated blob; for multi-file zip support use `ZipArchive` instead.
-    /// - Parameters:
-    ///   - level: the zip level to encode
-    ///   - checksum: if true verify the compression checksum
-    ///   - wrap: whether to wrap in zlib headers with the compression level and a suffix as the adler32
-    func deflate(level: Int? = nil, checksum: Bool = true, wrap: Bool = false) throws -> (crc: CRC32?, data: Data) {
-        func headers(_ source: (crc: CRC32?, data: Data)) -> (crc: CRC32?, data: Data) {
-            if !wrap { return source }
-            return (source.crc, Data([0x78, level == nil ? 0x9C : (level! <= 5) ? 0x01 : 0xDA]) + source.data + Data.adler32Data(self))
-        }
-
-        if let level = level {
-            return try headers(zipZlib(level: level))
-        }
-
-        return try headers(zipZlib(level: 5)) // fall back to zlib default compression level 5
-    }
-
-    /// Decompresses the data using the zlib deflate algorithm.
-    /// Note that this only creates an individual inflated blob; for multi-file zip support use `ZipArchive` instead.
-    func inflate(checksum: Bool = true, wrapped header: Bool = false) throws -> (crc: CRC32?, data: Data) {
-        let head = self.prefix(header ? 2 : 0)
-        if head.count == 2 {
-            if head[0] != 0x78 {
-                throw Archive.ArchiveError.unreadableArchive
-            }
-        }
-
-        let data = self.dropFirst(head.count)
-
-        return try data.unzipZlib(checksum: checksum)
-    }
-
+extension Data {
     /// Invoke the data provide and consumer
     @inlinable internal func feedData<T>(process: (_ provider: Provider, _ consumer: Consumer) throws -> T) rethrows -> (T, Data) {
         let start = self.startIndex // need to offset by the start index in case this is a slice
@@ -1909,22 +1942,6 @@ public enum CompressionMethod: UInt16 {
     /// Indicates that contents of an `Entry` have been compressed with a zlib compatible Deflate algorithm.
     case deflate = 8
 }
-
-/// An unsigned 32-Bit Integer representing a checksum.
-public typealias CRC32 = UInt32
-/// A custom handler that consumes a `Data` object containing partial entry data.
-/// - Parameters:
-///   - data: A chunk of `Data` to consume.
-/// - Throws: Can throw to indicate errors during data consumption.
-public typealias Consumer = (_ data: Data) throws -> Void
-/// A custom handler that receives a position and a size that can be used to provide data from an arbitrary source.
-/// - Parameters:
-///   - position: The current read position.
-///   - size: The size of the chunk to provide.
-/// - Returns: A chunk of `Data`.
-/// - Throws: Can throw to indicate errors in the data source.
-public typealias Provider = (_ position: Int64, _ size: Int64) throws -> Data
-
 
 extension Data {
     public enum CompressionError: Error {
