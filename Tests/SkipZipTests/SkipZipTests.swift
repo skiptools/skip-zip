@@ -17,13 +17,13 @@ final class SkipZipTests: XCTestCase {
         let bytes = [0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04].map({ UInt8($0) })
         let data: Data = Data(bytes)
 
-        func check(level: Int, crc32: UInt32? = nil) throws -> String {
-            let (crc, compressed) = try data.deflate(level: level)
+        func check(level: Int, crc32: UInt32? = nil, wrap: Bool) throws -> String {
+            let (crc, compressed) = try data.deflate(level: level, wrap: wrap)
             if let crc32 = crc32 {
                 XCTAssertEqual(crc, crc32)
             }
 
-            let (crc2, decompressed) = try compressed.inflate()
+            let (crc2, decompressed) = try compressed.inflate(wrapped: wrap)
             XCTAssertEqual(data, decompressed)
             if let crc32 = crc32 {
                 XCTAssertEqual(crc2, crc32)
@@ -33,15 +33,31 @@ final class SkipZipTests: XCTestCase {
         }
 
         // check the behavior of various zip compression levels
-        _ = try check(level: 0, crc32: UInt32(1403640103))
-        XCTAssertEqual("Y2RiZmHEgSEyxJC4TMAnToy5uN0GMhkA", try check(level: 1))
-        XCTAssertEqual("Y2RiZmHEgSEyxJC4TMAnToy5uN0GMhkA", try check(level: 2))
-        XCTAssertEqual("Y2RiZmHEgSEyxJC4TMAnToy5uN0GMhkA", try check(level: 3))
-        XCTAssertEqual("Y2RiZmHEgYknycHEk7gwAA==", try check(level: 4))
-        XCTAssertEqual("Y2RiZmHEgYknycHEk7gwAA==", try check(level: 5))
-        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(level: 6))
-        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(level: 7))
-        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(level: 8))
-        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(level: 9))
+        _ = try check(level: 0, crc32: UInt32(1403640103), wrap: false)
+        XCTAssertEqual("AbwAQ/8BAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBA==", try check(level: 0, wrap: false))
+        XCTAssertEqual("Y2RiZmHEgSEyxJC4TMAnToy5uN0GMhkA", try check(level: 1, wrap: false))
+        XCTAssertEqual("Y2RiZmHEgSEyxJC4TMAnToy5uN0GMhkA", try check(level: 2, wrap: false))
+        XCTAssertEqual("Y2RiZmHEgSEyxJC4TMAnToy5uN0GMhkA", try check(level: 3, wrap: false))
+        XCTAssertEqual("Y2RiZmHEgYknycHEk7gwAA==", try check(level: 4, wrap: false))
+        XCTAssertEqual("Y2RiZmHEgYknycHEk7gwAA==", try check(level: 5, wrap: false))
+        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(level: 6, wrap: false))
+        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(level: 7, wrap: false))
+        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(level: 8, wrap: false))
+        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(level: 9, wrap: false))
+
+        XCTAssertEqual("eAEBvABD/wECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQDBAECAwQDBAECAwQDBAECAwQDBAECAwQDBAECAwQDBAECAwQDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEt8IB8w==", try check(level: 0, wrap: true))
+        XCTAssertEqual("eAFjZGJmYcSBITLEkLhMwCdOjLm43QYyGQC3wgHz", try check(level: 1, wrap: true))
+        //XCTAssertEqual("eAFjZGJmYcSBITLEkLhMwCdOjLm43QYyGQC3wgHz", try check(level: 2, wrap: true))
+        //XCTAssertEqual("eAFjZGJmYcSBITLEkLhMwCdOjLm43QYyGQC3wgHz", try check(level: 3, wrap: true))
+        //XCTAssertEqual("eAFjZGJmYcSBiSfJwcSTuDAAt8IB8w==", try check(level: 4, wrap: true))
+        #if SKIP
+        XCTAssertEqual("eF5jZGJmYcSBiSfJwcSTuDAAt8IB8w==", try check(level: 5, wrap: true))
+        #else
+        XCTAssertEqual("eAFjZGJmYcSBiSfJwcSTuDAAt8IB8w==", try check(level: 5, wrap: true))
+        #endif
+        //XCTAssertEqual("eNpjZGJmYcSBiSfJwZSbDgC3wgHz", try check(level: 6, wrap: true))
+        //XCTAssertEqual("eNpjZGJmYcSBiSfJwZSbDgC3wgHz", try check(level: 7, wrap: true))
+        //XCTAssertEqual("eNpjZGJmYcSBiSfJwZSbDgC3wgHz", try check(level: 8, wrap: true))
+        XCTAssertEqual("eNpjZGJmYcSBiSfJwZSbDgC3wgHz", try check(level: 9, wrap: true))
     }
 }
