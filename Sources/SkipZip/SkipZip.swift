@@ -265,7 +265,7 @@ public final class ZipArchive {
     }
 
     struct EndOfCentralDirectoryRecord: DataSerializable {
-        let endOfCentralDirectorySignature = UInt32(endOfCentralDirectoryStructSignature)
+        let endOfCentralDirectorySignature: UInt32 = UInt32(endOfCentralDirectoryStructSignature)
         let numberOfDisk: UInt16
         let numberOfDiskStart: UInt16
         let totalNumberOfEntriesOnDisk: UInt16

@@ -62,6 +62,12 @@ final class SkipZipTests: XCTestCase {
         XCTAssertEqual("eNpjZGJmYcSBiSfJwZSbDgC3wgHz", try check(level: 9, wrap: true))
     }
 
+    func testNothing() throws {
+        #if !SKIP
+        throw XCTSkip("Test skipped")
+        #endif
+    }
+
     func testArchive() throws {
         #if SKIP
         throw XCTSkip("TODO: skip version of ZipArchive and necessary FS support")
