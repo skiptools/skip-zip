@@ -10,10 +10,10 @@ let package = Package(
     .library(name: "SkipZipKt", targets: ["SkipZipKt"]),
     ],
     dependencies: [
-        .package(url: "https://source.skip.tools/skip.git", from: "0.6.7"),
-        .package(url: "https://source.skip.tools/skip-unit.git", from: "0.1.1"),
-        .package(url: "https://source.skip.tools/skip-lib.git", from: "0.2.2"),
-        .package(url: "https://source.skip.tools/skip-foundation.git", from: "0.0.15"),
+        .package(url: "https://source.skip.tools/skip.git", from: "0.6.11"),
+        .package(url: "https://source.skip.tools/skip-unit.git", from: "0.1.3"),
+        .package(url: "https://source.skip.tools/skip-lib.git", from: "0.2.4"),
+        .package(url: "https://source.skip.tools/skip-foundation.git", from: "0.0.17"),
     ],
     targets: [
     .target(name: "SkipZip", plugins: [.plugin(name: "preflight", package: "skip")]),
