@@ -1,4 +1,38 @@
-# skip-zip
 
-Placeholder for future SkipZip module for [Skip](https://skip.tools) apps.
+SkipZip is a Skip framework that provides support for creating and extracting zip archives.
 
+It is currently a work in progress, and has only limited functionality.
+
+
+To deflate (i.e., compress) data, import `SkipZip` to get the `Data.deflate()`
+extension function. On iOS, this uses the zlib C API `zipZlib`,
+and on Kotlin/Java it uses the `java.util.zip.Deflater` API.
+
+Example:
+
+```swift
+import SkipZip
+
+let data = Data()
+
+
+
+## Building
+
+This project is a Swift Package Manager module that uses the
+[Skip](https://skip.tools) plugin to transpile Swift into Kotlin.
+
+Building the module requires that Skip be installed using 
+[Homebrew](https://brew.sh) with `brew install skiptools/skip/skip`.
+This will also install the necessary build prerequisites:
+Kotlin, Gradle, and the Android build tools.
+
+## Testing
+
+The module can be tested using the standard `swift test` command
+or by running the test target for the macOS destination in Xcode,
+which will run the Swift tests as well as the transpiled
+Kotlin JUnit tests in the Robolectric Android simulation environment.
+
+Parity testing can be performed with `skip test`,
+which will output a table of the test results for both platforms.
