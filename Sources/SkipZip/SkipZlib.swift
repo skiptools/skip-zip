@@ -447,15 +447,10 @@ public final class ZlibLibrary {
     // SKIP EXTERN
     public func gzoffset(_ file: gzFile!) -> Int { return zlib.gzoffset(file) }
 
-    // disabled to isolate Android emulator error
-    #if !SKIP
-
     // SKIP EXTERN
     public func get_crc_table() -> UnsafePointer<z_crc_t>! { return zlib.get_crc_table() }
 
     // SKIP EXTERN
     //public func gzvprintf(_ file: gzFile!, _ format: UnsafePointer<CChar>!, _ va: CVaListPointer) -> Int32 { return zlib.gzvprintf(file, format, va) }
-
-    #endif // !SKIP: disabled block to isolate Android emulator error
 }
 
