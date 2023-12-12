@@ -390,14 +390,14 @@ public final class ZlibLibrary {
     // SKIP EXTERN
     public func inflateBackEnd(_ strm: z_streamp!) -> Int32 { return zlib.inflateBackEnd(strm) }
 
-
-    // disabled to isolate Android emulator error
-    #if !SKIP
-
     // MARK: gzip
 
     // SKIP EXTERN
     public func gzdopen(_ fd: Int32, _ mode: UnsafePointer<CChar>!) -> gzFile! { return zlib.gzdopen(fd, mode) }
+
+    // disabled to isolate Android emulator error
+    #if !SKIP
+
     // SKIP EXTERN
     public func gzbuffer(_ file: gzFile!, _ size: ZUInt32) -> Int32 { return zlib.gzbuffer(file, size) }
     // SKIP EXTERN
