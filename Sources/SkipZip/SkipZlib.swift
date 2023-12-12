@@ -395,9 +395,6 @@ public final class ZlibLibrary {
     // SKIP EXTERN
     public func gzdopen(_ fd: Int32, _ mode: UnsafePointer<CChar>!) -> gzFile! { return zlib.gzdopen(fd, mode) }
 
-    // disabled to isolate Android emulator error
-    #if !SKIP
-
     // SKIP EXTERN
     public func gzbuffer(_ file: gzFile!, _ size: ZUInt32) -> Int32 { return zlib.gzbuffer(file, size) }
     // SKIP EXTERN
@@ -439,7 +436,6 @@ public final class ZlibLibrary {
     // SKIP EXTERN
     public func gzclearerr(_ file: gzFile!) { return zlib.gzclearerr(file)}
 
-
     // SKIP EXTERN
     public func gzgetc_(_ file: gzFile!) -> Int32 { return zlib.gzgetc_(file) }
     // SKIP EXTERN
@@ -450,8 +446,10 @@ public final class ZlibLibrary {
     public func gztell(_ file: gzFile!) -> Int { return zlib.gztell(file) }
     // SKIP EXTERN
     public func gzoffset(_ file: gzFile!) -> Int { return zlib.gzoffset(file) }
-    // SKIP EXTERN
-    public func zError(_ a1: Int32) -> UnsafePointer<CChar>! { return zlib.zError(a1) }
+
+    // disabled to isolate Android emulator error
+    #if !SKIP
+
     // SKIP EXTERN
     public func get_crc_table() -> UnsafePointer<z_crc_t>! { return zlib.get_crc_table() }
 
