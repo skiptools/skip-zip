@@ -5,10 +5,8 @@
 // as published by the Free Software Foundation https://fsf.org
 import Swift
 import Foundation
-#if canImport(zlib)
-import zlib
-#endif
 
+private let zlib = ZlibLibrary()
 
 @available(macOS 10.14, iOS 12.0, *)
 public extension Data {
@@ -335,7 +333,7 @@ extension ZipArchive {
 @available(macOS 10.14, iOS 12.0, *)
 extension Data {
     /// Invoke the data provide and consumer
-    @inlinable internal func feedData<T>(process: (_ provider: Provider, _ consumer: Consumer) throws -> T) rethrows -> (T, Data) {
+    internal func feedData<T>(process: (_ provider: Provider, _ consumer: Consumer) throws -> T) rethrows -> (T, Data) {
         let start = self.startIndex // need to offset by the start index in case this is a slice
         let end = self.endIndex
         var d = Data()
@@ -366,13 +364,13 @@ extension String {
 
 @available(macOS 10.14, iOS 12.0, *)
 public extension Data {
-    @inlinable func zipZlib(level: Int, bufferSize: Int64 = defaultReadChunkSize, checksum: Bool = true) throws -> (crc: CRC32?, data: Data) {
+    func zipZlib(level: Int, bufferSize: Int64 = defaultReadChunkSize, checksum: Bool = true) throws -> (crc: CRC32?, data: Data) {
         try feedData(process: { provider, consumer in
             try Data.zlibCompress(level: level, size: .init(self.count), bufferSize: bufferSize, provider: provider, consumer: consumer)
         })
     }
 
-    @inlinable func unzipZlib(bufferSize: Int64 = defaultReadChunkSize, checksum: Bool = true) throws -> (crc: CRC32?, data: Data) {
+    func unzipZlib(bufferSize: Int64 = defaultReadChunkSize, checksum: Bool = true) throws -> (crc: CRC32?, data: Data) {
         try feedData(process: { provider, consumer in
             try Data.zlibDecompress(bufferSize: bufferSize, skipCRC32: !checksum, provider: provider, consumer: consumer)
         })
@@ -381,32 +379,32 @@ public extension Data {
 
 @usableFromInline func zlibCRC32(data: Data, checksum: CRC32) -> CRC32 {
     data.withUnsafeBytes { bufferPointer in
-        CRC32(crc32(UInt(checksum), bufferPointer.bindMemory(to: UInt8.self).baseAddress, UInt32(data.count)))
+        CRC32(zlib.crc32(UInt(checksum), bufferPointer.bindMemory(to: UInt8.self).baseAddress, UInt32(data.count)))
     }
 }
 
-@usableFromInline func zlibDeflate(_ strm: z_streamp, _ flush: Int32) -> Int32 {
-    deflate(strm, flush)
+@usableFromInline func zlibDeflate(_ strm: ZlibLibrary.z_streamp, _ flush: Int32) -> Int32 {
+    zlib.deflate(strm, flush)
 }
 
 /// Cover func
-@usableFromInline func zlibInflate(_ strm: z_streamp, _ flush: Int32) -> Int32 {
-    inflate(strm, flush)
+@usableFromInline func zlibInflate(_ strm: ZlibLibrary.z_streamp, _ flush: Int32) -> Int32 {
+    zlib.inflate(strm, flush)
 }
 
 extension Data {
     @usableFromInline static let prime = UInt32(65521)
 
-    @inlinable public func decompressInflate() throws -> Data {
+    public func decompressInflate() throws -> Data {
         let decompressed = try self.inflate(wrapped: true).data
         return decompressed
     }
 
-    @inlinable public static func compressDeflate(_ source: Data, level: Int) throws -> Data {
+    public static func compressDeflate(_ source: Data, level: Int) throws -> Data {
         try source.deflate(level: level, wrap: true).data
     }
 
-    @inlinable public static func adler32Data(_ data: Data) -> Data {
+    public static func adler32Data(_ data: Data) -> Data {
         var s1 = UInt32(1 & 0xffff)
         var s2 = UInt32((1 >> 16) & 0xffff)
         data.forEach {
@@ -426,7 +424,7 @@ import Compression // TODO: remove Compression and use zlib
 
 extension Data {
     @available(*, deprecated, message: "remove non-portable import Compression")
-    @inlinable static func unpackNonPortable(_ size: Int, data: Data) throws -> (index: Int, result: Data) {
+    static func unpackNonPortable(_ size: Int, data: Data) throws -> (index: Int, result: Data) {
         var index = Swift.max(try compress(data.decompress(), level: wip(5)).count - Swift.max(size / 30, 9), 0)
         let result = try data.withUnsafeBytes {
             var stream = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1).pointee
@@ -2004,16 +2002,16 @@ extension Data {
 }
 
 extension Data {
-    @inlinable static func zlibCompress(level: Int?, size: Int64, bufferSize: Int64, provider: Provider, consumer: Consumer) throws -> CRC32 {
-        let compressionLevel = level == nil ? Z_DEFAULT_COMPRESSION : Swift.max(-1, Swift.min(9, Int32((level ?? -1))))
+    static func zlibCompress(level: Int?, size: Int64, bufferSize: Int64, provider: Provider, consumer: Consumer) throws -> CRC32 {
+        let compressionLevel = level == nil ? zlib.Z_DEFAULT_COMPRESSION : Swift.max(-1, Swift.min(9, Int32((level ?? -1))))
 
-        var stream = z_stream()
-        let streamSize = Int32(MemoryLayout<z_stream>.size)
-        var result = deflateInit2_(&stream, compressionLevel,
-                                   Z_DEFLATED, -MAX_WBITS, 9, Z_DEFAULT_STRATEGY, ZLIB_VERSION, streamSize)
-        defer { deflateEnd(&stream) }
-        guard result == Z_OK else { throw CompressionError.invalidStream }
-        var flush = Z_NO_FLUSH
+        var stream = ZlibLibrary.z_stream()
+        let streamSize = Int32(MemoryLayout<ZlibLibrary.z_stream>.size)
+        var result = zlib.deflateInit2_(&stream, compressionLevel,
+                                   zlib.Z_DEFLATED, -zlib.MAX_WBITS, 9, zlib.Z_DEFAULT_STRATEGY, zlib.ZLIB_VERSION, streamSize)
+        defer { zlib.deflateEnd(&stream) }
+        guard result == zlib.Z_OK else { throw CompressionError.invalidStream }
+        var flush = zlib.Z_NO_FLUSH
         var position: Int64 = 0
         var zipCRC32 = CRC32(0)
         repeat {
@@ -2025,12 +2023,12 @@ extension Data {
                 if let baseAddress = rawBufferPointer.baseAddress {
                     let pointer = baseAddress.assumingMemoryBound(to: UInt8.self)
                     stream.next_in = pointer
-                    flush = position + Int64(bufferSize) >= size ? Z_FINISH : Z_NO_FLUSH
+                    flush = position + Int64(bufferSize) >= size ? zlib.Z_FINISH : zlib.Z_NO_FLUSH
                 } else if rawBufferPointer.count > 0 {
                     throw CompressionError.corruptedData
                 } else {
                     stream.next_in = nil
-                    flush = Z_FINISH
+                    flush = zlib.Z_FINISH
                 }
                 var outputChunk = Data(count: Int(bufferSize))
                 repeat {
@@ -2043,18 +2041,18 @@ extension Data {
                         stream.next_out = pointer
                         result = zlibDeflate(&stream, flush)
                     }
-                    guard result >= Z_OK else { throw CompressionError.corruptedData }
+                    guard result >= zlib.Z_OK else { throw CompressionError.corruptedData }
 
                     outputChunk.count = Int(bufferSize) - Int(stream.avail_out)
                     try consumer(outputChunk)
                 } while stream.avail_out == 0
             }
             position += Int64(readSize)
-        } while flush != Z_FINISH
+        } while flush != zlib.Z_FINISH
         return zipCRC32
     }
 
-    @inlinable static func zlibUnpackSegment(_ rawBufferPointer: UnsafeMutableRawBufferPointer, stream: inout z_stream, result: inout Int32, size: Int64, unzipCRC32: CRC32?, consumer: Consumer) throws -> CRC32? {
+    static func zlibUnpackSegment(_ rawBufferPointer: UnsafeMutableRawBufferPointer, stream: inout ZlibLibrary.z_stream, result: inout Int32, size: Int64, unzipCRC32: CRC32?, consumer: Consumer) throws -> CRC32? {
         var unzipCRC32 = unzipCRC32
         if let baseAddress = rawBufferPointer.baseAddress, rawBufferPointer.count > 0 {
             let pointer = baseAddress.assumingMemoryBound(to: UInt8.self)
@@ -2069,10 +2067,10 @@ extension Data {
                     } else {
                         throw CompressionError.corruptedData
                     }
-                    result = zlibInflate(&stream, Z_NO_FLUSH)
-                    guard result != Z_NEED_DICT &&
-                        result != Z_DATA_ERROR &&
-                        result != Z_MEM_ERROR else {
+                    result = zlibInflate(&stream, zlib.Z_NO_FLUSH)
+                    guard result != zlib.Z_NEED_DICT &&
+                            result != zlib.Z_DATA_ERROR &&
+                            result != zlib.Z_MEM_ERROR else {
                         throw CompressionError.corruptedData
                     }
                 }
@@ -2087,13 +2085,13 @@ extension Data {
         return unzipCRC32
     }
 
-    @inlinable static func zlibDecompress(bufferSize: Int64, skipCRC32: Bool, provider: Provider, consumer: Consumer) throws -> CRC32? {
-        var stream = z_stream()
-        let streamSize = Int32(MemoryLayout<z_stream>.size)
-        var result = inflateInit2_(&stream, -MAX_WBITS, ZLIB_VERSION, streamSize)
-        defer { inflateEnd(&stream) }
+    static func zlibDecompress(bufferSize: Int64, skipCRC32: Bool, provider: Provider, consumer: Consumer) throws -> CRC32? {
+        var stream = ZlibLibrary.z_stream()
+        let streamSize = Int32(MemoryLayout<ZlibLibrary.z_stream>.size)
+        var result = zlib.inflateInit2_(&stream, -zlib.MAX_WBITS, zlib.ZLIB_VERSION, streamSize)
+        defer { zlib.inflateEnd(&stream) }
 
-        guard result == Z_OK else {
+        guard result == zlib.Z_OK else {
             throw CompressionError.invalidStream
         }
 
@@ -2107,7 +2105,7 @@ extension Data {
             try chunk.withUnsafeMutableBytes {
                 unzipCRC32 = try zlibUnpackSegment($0, stream: &stream, result: &result, size: bufferSize, unzipCRC32: unzipCRC32, consumer: consumer)
             }
-        } while result != Z_STREAM_END
+        } while result != zlib.Z_STREAM_END
 
         return unzipCRC32
     }

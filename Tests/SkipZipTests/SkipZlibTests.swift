@@ -22,6 +22,19 @@ final class SkipZlibTests: XCTestCase {
         XCTAssertEqual(zlib.zError(code: -4), "insufficient memory")
         XCTAssertEqual(zlib.zError(code: -5), "buffer error")
 
+        XCTAssertEqual(zlib.Z_OK, 0)
+        XCTAssertEqual(zlib.Z_FINISH, 4)
+        XCTAssertEqual(zlib.Z_DEFLATED, 8)
+        XCTAssertEqual(zlib.Z_NO_FLUSH, 0)
+        XCTAssertEqual(zlib.Z_MEM_ERROR, -4)
+        XCTAssertEqual(zlib.Z_NEED_DICT, 2)
+        XCTAssertEqual(zlib.Z_STREAM_END, 1)
+        XCTAssertEqual(zlib.Z_DEFLATED, 8)
+        XCTAssertEqual(zlib.MAX_WBITS, 15)
+        XCTAssertEqual(zlib.Z_DEFAULT_STRATEGY, 0)
+        XCTAssertEqual(zlib.Z_DEFAULT_COMPRESSION, -1)
+
+
     }
 }
 

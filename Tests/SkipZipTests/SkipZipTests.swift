@@ -80,22 +80,17 @@ final class SkipZipTests: XCTestCase {
 
         do {
             let data = Data((1...1024).map({ _ in [UInt8(0x01), UInt8(0x09), UInt8(0x44), UInt8(0xFA), UInt8(0x1C)] }).joined())
-
             let crc32 = UInt32(1432318548)
-            // differences between Java and Swift zlib
-            let c9 = 52
-            let c3 = 84
-            let c0 = 6844
-            XCTAssertEqual(c9, try check(data: data, level: 9, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(c9, try check(data: data, level: 8, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(c9, try check(data: data, level: 7, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(c9, try check(data: data, level: 6, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(c9, try check(data: data, level: 5, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(c9, try check(data: data, level: 4, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(c3, try check(data: data, level: 3, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(c3, try check(data: data, level: 2, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(c3, try check(data: data, level: 1, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(c0, try check(data: data, level: 0, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(52, try check(data: data, level: 9, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(52, try check(data: data, level: 8, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(52, try check(data: data, level: 7, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(52, try check(data: data, level: 6, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(52, try check(data: data, level: 5, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(52, try check(data: data, level: 4, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(84, try check(data: data, level: 3, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(84, try check(data: data, level: 2, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(84, try check(data: data, level: 1, crc32: crc32, wrap: true).count)
+            XCTAssertEqual(6844, try check(data: data, level: 0, crc32: crc32, wrap: true).count)
         }
 
     }
