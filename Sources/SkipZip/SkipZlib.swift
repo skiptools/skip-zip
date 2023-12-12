@@ -266,6 +266,8 @@ public final class ZlibLibrary {
 //
 //    public typealias out_func = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutablePointer<UInt8>?, UInt32) -> Int32
 
+    // SKIP EXTERN
+    public func zlibCompileFlags() -> ZUInt { return zlib.zlibCompileFlags() }
 
     #if SKIP
     // needed for JNA mappings to line up
@@ -293,6 +295,21 @@ public final class ZlibLibrary {
     public func crc32_combine(_ a1: ZUInt, _ a2: ZUInt, _ a3: Int) -> ZUInt { return zlib.crc32_combine(a1, a2, a3) }
     // SKIP EXTERN
 //    public func crc32_combine_gen(_ a1: Int) -> ZUInt { return zlib.crc32_combine_gen(a1) }
+
+    // MARK: one-shot compress/uncompress
+
+    // SKIP EXTERN
+    public func compress(_ dest: UnsafeMutablePointer<UInt8>!, _ destLen: UnsafeMutablePointer<UInt>!, _ source: UnsafePointer<UInt8>!, _ sourceLen: ZUInt) -> Int32 { return zlib.compress(dest, destLen, source, sourceLen) }
+    // SKIP EXTERN
+    public func compress2(_ dest: UnsafeMutablePointer<UInt8>!, _ destLen: UnsafeMutablePointer<UInt>!, _ source: UnsafePointer<UInt8>!, _ sourceLen: ZUInt, _ level: Int32) -> Int32 { return zlib.compress2(dest, destLen, source, sourceLen, level) }
+    // SKIP EXTERN
+    public func compressBound(_ sourceLen: ZUInt) -> ZUInt { return zlib.compressBound(sourceLen) }
+
+
+    // SKIP EXTERN
+    public func uncompress(_ dest: UnsafeMutablePointer<UInt8>!, _ destLen: UnsafeMutablePointer<UInt>!, _ source: UnsafePointer<UInt8>!, _ sourceLen: ZUInt) -> Int32 { return zlib.uncompress(dest, destLen, source, sourceLen) }
+    // SKIP EXTERN
+    public func uncompress2(_ dest: UnsafeMutablePointer<UInt8>!, _ destLen: UnsafeMutablePointer<UInt>!, _ source: UnsafePointer<UInt8>!, _ sourceLen: UnsafeMutablePointer<UInt>!) -> Int32 { return zlib.uncompress2(dest, destLen, source, sourceLen) }
 
     // disabled to isolate Android emulator error
     #if !SKIP
@@ -325,6 +342,36 @@ public final class ZlibLibrary {
     public func deflatePrime(_ strm: z_streamp!, _ bits: Int32, _ value: Int32) -> Int32 { return zlib.deflatePrime(strm, bits, value) }
     // SKIP EXTERN
 //    public func deflateSetHeader(_ strm: z_streamp!, _ head: gz_headerp!) -> Int32 { return zlib.deflateSetHeader(strm, head) }
+
+
+    // SKIP EXTERN
+    public func deflateInit_(_ strm: z_streamp!, _ level: Int32, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.deflateInit_(strm, level, version, stream_size) }
+    // SKIP EXTERN
+    public func inflateInit_(_ strm: z_streamp!, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.inflateInit_(strm, version, stream_size) }
+
+
+    // SKIP EXTERN
+    public func deflateInit2_(_ strm: z_streamp!, _ level: Int32, _ method: Int32, _ windowBits: Int32, _ memLevel: Int32, _ strategy: Int32, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.deflateInit2_(strm, level, method, windowBits, memLevel, strategy, version, stream_size) }
+    // SKIP EXTERN
+    public func inflateInit2_(_ strm: z_streamp!, _ windowBits: Int32, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.inflateInit2_(strm, windowBits, version, stream_size) }
+
+
+    // SKIP EXTERN
+    public func inflateBackInit_(_ strm: z_streamp!, _ windowBits: Int32, _ window: UnsafeMutablePointer<UInt8>!, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.inflateBackInit_(strm, windowBits, window, version, stream_size) }
+
+    // SKIP EXTERN
+    public func inflateSyncPoint(_ a1: z_streamp!) -> Int32 { return zlib.inflateSyncPoint(a1) }
+    // SKIP EXTERN
+    public func inflateUndermine(_ a1: z_streamp!, _ a2: Int32) -> Int32 { return zlib.inflateUndermine(a1, a2) }
+    // SKIP EXTERN
+    public func inflateValidate(_ a1: z_streamp!, _ a2: Int32) -> Int32 { return zlib.inflateValidate(a1, a2) }
+    // SKIP EXTERN
+    public func inflateCodesUsed(_ a1: z_streamp!) -> ZUInt { return zlib.inflateCodesUsed(a1) }
+    // SKIP EXTERN
+    public func inflateResetKeep(_ a1: z_streamp!) -> Int32 { return zlib.inflateResetKeep(a1) }
+    // SKIP EXTERN
+    public func deflateResetKeep(_ a1: z_streamp!) -> Int32 { return zlib.deflateResetKeep(a1) }
+
     // SKIP EXTERN
     public func inflateSetDictionary(_ strm: z_streamp!, _ dictionary: UnsafePointer<UInt8>!, _ dictLength: ZUInt32) -> Int32 { return zlib.inflateSetDictionary(strm, dictionary, dictLength) }
     // SKIP EXTERN
@@ -345,18 +392,10 @@ public final class ZlibLibrary {
 //    public func inflateBack(_ strm: z_streamp!, _ in: in_func!, _ in_desc: UnsafeMutableRawPointer!, _ out: out_func!, _ out_desc: UnsafeMutableRawPointer!) -> Int32 { return zlib.inflateBack(strm, `in`, in_desc, out, out_desc) }
     // SKIP EXTERN
     public func inflateBackEnd(_ strm: z_streamp!) -> Int32 { return zlib.inflateBackEnd(strm) }
-    // SKIP EXTERN
-    public func zlibCompileFlags() -> ZUInt { return zlib.zlibCompileFlags() }
-    // SKIP EXTERN
-    public func compress(_ dest: UnsafeMutablePointer<UInt8>!, _ destLen: UnsafeMutablePointer<UInt>!, _ source: UnsafePointer<UInt8>!, _ sourceLen: ZUInt) -> Int32 { return zlib.compress(dest, destLen, source, sourceLen) }
-    // SKIP EXTERN
-    public func compress2(_ dest: UnsafeMutablePointer<UInt8>!, _ destLen: UnsafeMutablePointer<UInt>!, _ source: UnsafePointer<UInt8>!, _ sourceLen: ZUInt, _ level: Int32) -> Int32 { return zlib.compress2(dest, destLen, source, sourceLen, level) }
-    // SKIP EXTERN
-    public func compressBound(_ sourceLen: ZUInt) -> ZUInt { return zlib.compressBound(sourceLen) }
-    // SKIP EXTERN
-    public func uncompress(_ dest: UnsafeMutablePointer<UInt8>!, _ destLen: UnsafeMutablePointer<UInt>!, _ source: UnsafePointer<UInt8>!, _ sourceLen: ZUInt) -> Int32 { return zlib.uncompress(dest, destLen, source, sourceLen) }
-    // SKIP EXTERN
-    public func uncompress2(_ dest: UnsafeMutablePointer<UInt8>!, _ destLen: UnsafeMutablePointer<UInt>!, _ source: UnsafePointer<UInt8>!, _ sourceLen: UnsafeMutablePointer<UInt>!) -> Int32 { return zlib.uncompress2(dest, destLen, source, sourceLen) }
+
+
+    // MARK: gzip
+
     // SKIP EXTERN
     public func gzdopen(_ fd: Int32, _ mode: UnsafePointer<CChar>!) -> gzFile! { return zlib.gzdopen(fd, mode) }
     // SKIP EXTERN
@@ -399,16 +438,8 @@ public final class ZlibLibrary {
     public func gzerror(_ file: gzFile!, _ errnum: UnsafeMutablePointer<Int32>!) -> UnsafePointer<CChar>! { return zlib.gzerror(file, errnum) }
     // SKIP EXTERN
     public func gzclearerr(_ file: gzFile!) { return zlib.gzclearerr(file)}
-    // SKIP EXTERN
-    public func deflateInit_(_ strm: z_streamp!, _ level: Int32, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.deflateInit_(strm, level, version, stream_size) }
-    // SKIP EXTERN
-    public func inflateInit_(_ strm: z_streamp!, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.inflateInit_(strm, version, stream_size) }
-    // SKIP EXTERN
-    public func deflateInit2_(_ strm: z_streamp!, _ level: Int32, _ method: Int32, _ windowBits: Int32, _ memLevel: Int32, _ strategy: Int32, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.deflateInit2_(strm, level, method, windowBits, memLevel, strategy, version, stream_size) }
-    // SKIP EXTERN
-    public func inflateInit2_(_ strm: z_streamp!, _ windowBits: Int32, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.inflateInit2_(strm, windowBits, version, stream_size) }
-    // SKIP EXTERN
-    public func inflateBackInit_(_ strm: z_streamp!, _ windowBits: Int32, _ window: UnsafeMutablePointer<UInt8>!, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.inflateBackInit_(strm, windowBits, window, version, stream_size) }
+
+
     // SKIP EXTERN
     public func gzgetc_(_ file: gzFile!) -> Int32 { return zlib.gzgetc_(file) }
     // SKIP EXTERN
@@ -422,19 +453,8 @@ public final class ZlibLibrary {
     // SKIP EXTERN
     public func zError(_ a1: Int32) -> UnsafePointer<CChar>! { return zlib.zError(a1) }
     // SKIP EXTERN
-    public func inflateSyncPoint(_ a1: z_streamp!) -> Int32 { return zlib.inflateSyncPoint(a1) }
-    // SKIP EXTERN
     public func get_crc_table() -> UnsafePointer<z_crc_t>! { return zlib.get_crc_table() }
-    // SKIP EXTERN
-    public func inflateUndermine(_ a1: z_streamp!, _ a2: Int32) -> Int32 { return zlib.inflateUndermine(a1, a2) }
-    // SKIP EXTERN
-    public func inflateValidate(_ a1: z_streamp!, _ a2: Int32) -> Int32 { return zlib.inflateValidate(a1, a2) }
-    // SKIP EXTERN
-    public func inflateCodesUsed(_ a1: z_streamp!) -> ZUInt { return zlib.inflateCodesUsed(a1) }
-    // SKIP EXTERN
-    public func inflateResetKeep(_ a1: z_streamp!) -> Int32 { return zlib.inflateResetKeep(a1) }
-    // SKIP EXTERN
-    public func deflateResetKeep(_ a1: z_streamp!) -> Int32 { return zlib.deflateResetKeep(a1) }
+
     // SKIP EXTERN
     //public func gzvprintf(_ file: gzFile!, _ format: UnsafePointer<CChar>!, _ va: CVaListPointer) -> Int32 { return zlib.gzvprintf(file, format, va) }
     #endif
