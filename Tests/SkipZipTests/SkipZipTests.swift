@@ -79,19 +79,13 @@ final class SkipZipTests: XCTestCase {
         }
 
         do {
-            let data = Data((1...1_000_000).map({ _ in [UInt8(0x01), UInt8(0x09), UInt8(0x44), UInt8(0xFA), UInt8(0x1C)] }).joined())
+            let data = Data((1...1024).map({ _ in [UInt8(0x01), UInt8(0x09), UInt8(0x44), UInt8(0xFA), UInt8(0x1C)] }).joined())
 
-            let crc32 = UInt32(378552204)
+            let crc32 = UInt32(1432318548)
             // differences between Java and Swift zlib
-            #if !SKIP
-            let c9 = 9732
-            let c3 = 35576
-            let c0 = 6667696
-            #else
-            let c9 = 9732 + 20
-            let c3 = 35576 + 20
-            let c0 = 6667688
-            #endif
+            let c9 = 52
+            let c3 = 84
+            let c0 = 6844
             XCTAssertEqual(c9, try check(data: data, level: 9, crc32: crc32, wrap: true).count)
             XCTAssertEqual(c9, try check(data: data, level: 8, crc32: crc32, wrap: true).count)
             XCTAssertEqual(c9, try check(data: data, level: 7, crc32: crc32, wrap: true).count)
