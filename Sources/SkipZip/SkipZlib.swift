@@ -276,6 +276,9 @@ public final class ZlibLibrary {
     public typealias ZUInt32 = UInt32
     #endif
 
+    // disabled to isolate Android emulator error
+    #if !SKIP
+
     // SKIP EXTERN
     public func deflate(_ strm: z_streamp!, _ flush: Int32) -> Int32 { return zlib.deflate(strm, flush) }
     // SKIP EXTERN
@@ -432,5 +435,6 @@ public final class ZlibLibrary {
     public func deflateResetKeep(_ a1: z_streamp!) -> Int32 { return zlib.deflateResetKeep(a1) }
     // SKIP EXTERN
     //public func gzvprintf(_ file: gzFile!, _ format: UnsafePointer<CChar>!, _ va: CVaListPointer) -> Int32 { return zlib.gzvprintf(file, format, va) }
+    #endif
 }
 
