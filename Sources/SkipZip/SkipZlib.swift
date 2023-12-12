@@ -13,6 +13,8 @@ import zlib
 
 /// `ZlibLibrary` is an encapsulation of `libz` functions and structures.
 public final class ZlibLibrary {
+    public typealias z_streamp = UnsafeMutablePointer<z_stream> // zlib.z_streamp
+
     public init() {
         #if SKIP
         com.sun.jna.Native.register((ZlibLibrary.self as kotlin.reflect.KClass).java, "z")
@@ -112,61 +114,58 @@ public final class ZlibLibrary {
     }
 
 
-    #if !SKIP
-    public typealias z_streamp = zlib.z_streamp
-
     // SKIP EXTERN
-    public func crc32(_ crc: uLong, _ buf: UnsafePointer<Bytef>!, _ len: uInt) -> uLong {
-        zlib.crc32(crc, buf, len)
-    }
-
-    // SKIP EXTERN
-    func deflate(_ strm: z_streamp, _ flush: Int32) -> Int32 {
-        zlib.deflate(strm, flush)
-    }
-
-    // SKIP EXTERN
-    func inflate(_ strm: z_streamp, _ flush: Int32) -> Int32 {
-        zlib.inflate(strm, flush)
-    }
-
-    // SKIP EXTERN
-    func deflateInit2_(_ strm: z_streamp!, _ level: Int32, _ method: Int32, _ windowBits: Int32, _ memLevel: Int32, _ strategy: Int32, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 {
+    public func deflateInit2_(_ strm: z_streamp!, _ level: Int32, _ method: Int32, _ windowBits: Int32, _ memLevel: Int32, _ strategy: Int32, _ version: String, _ stream_size: Int32) -> Int32 {
         zlib.deflateInit2_(strm, level, method, windowBits, memLevel, strategy, version, stream_size)
     }
 
     // SKIP EXTERN
-    @discardableResult func deflateEnd(_ strm: z_streamp!) -> Int32 {
+    @discardableResult public func deflateEnd(_ strm: z_streamp!) -> Int32 {
         zlib.deflateEnd(strm!)
     }
 
     // SKIP EXTERN
-    func inflateInit2_(_ strm: z_streamp!, _ windowBits: Int32, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 {
+    public func inflateInit2_(_ strm: z_streamp!, _ windowBits: Int32, _ version: String, _ stream_size: Int32) -> Int32 {
         zlib.inflateInit2_(strm, windowBits, version, stream_size)
     }
 
     // SKIP EXTERN
-    @discardableResult func inflateEnd(_ strm: z_streamp!) -> Int32 {
+    @discardableResult public func inflateEnd(_ strm: z_streamp!) -> Int32 {
         zlib.inflateEnd(strm!)
     }
 
+    // SKIP EXTERN
+    public func deflate(_ strm: z_streamp, _ flush: Int32) -> Int32 {
+        zlib.deflate(strm, flush)
+    }
+
+    // SKIP EXTERN
+    public func inflate(_ strm: z_streamp, _ flush: Int32) -> Int32 {
+        zlib.inflate(strm, flush)
+    }
+
+    #if !SKIP
+    // SKIP EXTERN
+    public func crc32(_ crc: uLong, _ buf: UnsafePointer<Bytef>!, _ len: uInt) -> uLong {
+        zlib.crc32(crc, buf, len)
+    }
     #endif
 
     #if !SKIP
     public typealias z_stream = zlib.z_stream
     #else
     // SKIP INSERT: @com.sun.jna.Structure.FieldOrder("next_in", "avail_in", "total_in", "next_out", "avail_out", "total_out", "msg", "state", "zalloc", "zfree", "opaque", "data_type", "adler", "reserved")
-    public final class z_stream : com.sun.jna.Structure {
-        // SKIP REPLACE: @JvmField var next_in: com.sun.jna.Pointer?
-        public var next_in: com.sun.jna.Pointer?
+    public final class z_stream : SkipFFIStructure {
+        // otherwise: "JvmField cannot be applied to a property with a custom accessor" due to accessor being created for this type
+        // SKIP REPLACE: @JvmField var next_in: OpaquePointer?
+        public var next_in: OpaquePointer?
         // SKIP INSERT: @JvmField
         public var avail_in: Int32
         // SKIP INSERT: @JvmField
         public var total_in: Int64
 
-        // otherwise: "JvmField cannot be applied to a property with a custom accessor"
-        // SKIP REPLACE: @JvmField var next_out: com.sun.jna.Pointer?
-        public var next_out: com.sun.jna.Pointer?
+        // SKIP REPLACE: @JvmField var next_out: OpaquePointer?
+        public var next_out: OpaquePointer?
         // SKIP INSERT: @JvmField
         public var avail_out: Int32
         // SKIP INSERT: @JvmField
@@ -174,15 +173,15 @@ public final class ZlibLibrary {
 
         // SKIP INSERT: @JvmField
         public var msg: String?
-        // SKIP REPLACE: @JvmField var state: com.sun.jna.Pointer?
-        public var state: com.sun.jna.Pointer?
+        // SKIP REPLACE: @JvmField var state: OpaquePointer?
+        public var state: OpaquePointer?
 
-        // SKIP REPLACE: @JvmField var zalloc: com.sun.jna.Pointer?
-        public var zalloc: com.sun.jna.Pointer?
-        // SKIP REPLACE: @JvmField var zfree: com.sun.jna.Pointer?
-        public var zfree: com.sun.jna.Pointer?
-        // SKIP REPLACE: @JvmField var opaque: com.sun.jna.Pointer?
-        public var opaque: com.sun.jna.Pointer?
+        // SKIP REPLACE: @JvmField var zalloc: OpaquePointer?
+        public var zalloc: OpaquePointer?
+        // SKIP REPLACE: @JvmField var zfree: OpaquePointer?
+        public var zfree: OpaquePointer?
+        // SKIP REPLACE: @JvmField var opaque: OpaquePointer?
+        public var opaque: OpaquePointer?
 
         // SKIP INSERT: @JvmField
         public var data_type: Int32
@@ -191,7 +190,7 @@ public final class ZlibLibrary {
         // SKIP INSERT: @JvmField
         public var reserved: Int64
 
-        public init(next_in: com.sun.jna.Pointer? = nil, avail_in: Int32 = 0, total_in: Int64 = 0, next_out: com.sun.jna.Pointer? = nil, avail_out: Int32 = 0, total_out: Int64 = 0, msg: String? = nil, state: com.sun.jna.Pointer? = nil, zalloc: com.sun.jna.Pointer? = nil, zfree: com.sun.jna.Pointer? = nil, opaque: com.sun.jna.Pointer? = nil, data_type: Int32 = 0, adler: Int32 = 0, reserved: Int64 = 0) {
+        public init(next_in: OpaquePointer? = nil, avail_in: Int32 = 0, total_in: Int64 = 0, next_out: OpaquePointer? = nil, avail_out: Int32 = 0, total_out: Int64 = 0, msg: String? = nil, state: OpaquePointer? = nil, zalloc: OpaquePointer? = nil, zfree: OpaquePointer? = nil, opaque: OpaquePointer? = nil, data_type: Int32 = 0, adler: Int32 = 0, reserved: Int64 = 0) {
             self.next_in = next_in
             self.avail_in = avail_in
             self.total_in = total_in

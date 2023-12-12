@@ -6,7 +6,8 @@
 import XCTest
 import OSLog
 import Foundation
-@testable import SkipZip
+import SkipZip
+import SkipFFI
 
 @available(macOS 13, macCatalyst 16, iOS 16, tvOS 16, watchOS 8, *)
 final class SkipZlibTests: XCTestCase {
@@ -35,7 +36,13 @@ final class SkipZlibTests: XCTestCase {
         XCTAssertEqual(zlib.Z_DEFAULT_COMPRESSION, -1)
 
 
-        let stream = ZlibLibrary.z_stream()
+        var stream = ZlibLibrary.z_stream()
+//        withUnsafeMutablePointer(to: &stream) { zlib.deflateEnd($0) }
+        #if SKIP
+        XCTAssertEqual(-2, zlib.deflateEnd(com.sun.jna.ptr.PointerByReference(stream.pointer)))
+        #else
+        XCTAssertEqual(-2, zlib.deflateEnd(&stream))
+        #endif
     }
 }
 
