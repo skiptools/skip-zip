@@ -311,9 +311,6 @@ public final class ZlibLibrary {
     // SKIP EXTERN
     public func uncompress2(_ dest: UnsafeMutablePointer<UInt8>!, _ destLen: UnsafeMutablePointer<UInt>!, _ source: UnsafePointer<UInt8>!, _ sourceLen: UnsafeMutablePointer<UInt>!) -> Int32 { return zlib.uncompress2(dest, destLen, source, sourceLen) }
 
-    // disabled to isolate Android emulator error
-    #if !SKIP
-
     // SKIP EXTERN
     public func deflate(_ strm: z_streamp!, _ flush: Int32) -> Int32 { return zlib.deflate(strm, flush) }
     // SKIP EXTERN
@@ -394,6 +391,9 @@ public final class ZlibLibrary {
     public func inflateBackEnd(_ strm: z_streamp!) -> Int32 { return zlib.inflateBackEnd(strm) }
 
 
+    // disabled to isolate Android emulator error
+    #if !SKIP
+
     // MARK: gzip
 
     // SKIP EXTERN
@@ -457,6 +457,7 @@ public final class ZlibLibrary {
 
     // SKIP EXTERN
     //public func gzvprintf(_ file: gzFile!, _ format: UnsafePointer<CChar>!, _ va: CVaListPointer) -> Int32 { return zlib.gzvprintf(file, format, va) }
-    #endif
+
+    #endif // !SKIP: disabled block to isolate Android emulator error
 }
 
