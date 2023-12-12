@@ -35,7 +35,7 @@ public final class ZlibLibrary {
 
     public var Z_NO_FLUSH: Int32 {
         #if !SKIP
-        assert(zlib.Z_NO_FLUSH == 0, "\(Z_NO_FLUSH)")
+        assert(zlib.Z_NO_FLUSH == 0, "\(zlib.Z_NO_FLUSH)")
         #endif
         return 0
     }
@@ -114,7 +114,6 @@ public final class ZlibLibrary {
 
     #if !SKIP
     public typealias z_streamp = zlib.z_streamp
-    public typealias z_stream = zlib.z_stream
 
     // SKIP EXTERN
     public func crc32(_ crc: uLong, _ buf: UnsafePointer<Bytef>!, _ len: uInt) -> uLong {
@@ -137,7 +136,7 @@ public final class ZlibLibrary {
     }
 
     // SKIP EXTERN
-    func deflateEnd(_ strm: z_streamp!) -> Int32 {
+    @discardableResult func deflateEnd(_ strm: z_streamp!) -> Int32 {
         zlib.deflateEnd(strm!)
     }
 
@@ -147,10 +146,68 @@ public final class ZlibLibrary {
     }
 
     // SKIP EXTERN
-    func inflateEnd(_ strm: z_streamp!) -> Int32 {
+    @discardableResult func inflateEnd(_ strm: z_streamp!) -> Int32 {
         zlib.inflateEnd(strm!)
     }
 
+    #endif
+
+    #if !SKIP
+    public typealias z_stream = zlib.z_stream
+    #else
+    // SKIP INSERT: @com.sun.jna.Structure.FieldOrder("next_in", "avail_in", "total_in", "next_out", "avail_out", "total_out", "msg", "state", "zalloc", "zfree", "opaque", "data_type", "adler", "reserved")
+    public final class z_stream : com.sun.jna.Structure {
+        // SKIP REPLACE: @JvmField var next_in: com.sun.jna.Pointer?
+        public var next_in: com.sun.jna.Pointer?
+        // SKIP INSERT: @JvmField
+        public var avail_in: Int32
+        // SKIP INSERT: @JvmField
+        public var total_in: Int64
+
+        // otherwise: "JvmField cannot be applied to a property with a custom accessor"
+        // SKIP REPLACE: @JvmField var next_out: com.sun.jna.Pointer?
+        public var next_out: com.sun.jna.Pointer?
+        // SKIP INSERT: @JvmField
+        public var avail_out: Int32
+        // SKIP INSERT: @JvmField
+        public var total_out: Int64
+
+        // SKIP INSERT: @JvmField
+        public var msg: String?
+        // SKIP REPLACE: @JvmField var state: com.sun.jna.Pointer?
+        public var state: com.sun.jna.Pointer?
+
+        // SKIP REPLACE: @JvmField var zalloc: com.sun.jna.Pointer?
+        public var zalloc: com.sun.jna.Pointer?
+        // SKIP REPLACE: @JvmField var zfree: com.sun.jna.Pointer?
+        public var zfree: com.sun.jna.Pointer?
+        // SKIP REPLACE: @JvmField var opaque: com.sun.jna.Pointer?
+        public var opaque: com.sun.jna.Pointer?
+
+        // SKIP INSERT: @JvmField
+        public var data_type: Int32
+        // SKIP INSERT: @JvmField
+        public var adler: Int32
+        // SKIP INSERT: @JvmField
+        public var reserved: Int64
+
+        public init(next_in: com.sun.jna.Pointer? = nil, avail_in: Int32 = 0, total_in: Int64 = 0, next_out: com.sun.jna.Pointer? = nil, avail_out: Int32 = 0, total_out: Int64 = 0, msg: String? = nil, state: com.sun.jna.Pointer? = nil, zalloc: com.sun.jna.Pointer? = nil, zfree: com.sun.jna.Pointer? = nil, opaque: com.sun.jna.Pointer? = nil, data_type: Int32 = 0, adler: Int32 = 0, reserved: Int64 = 0) {
+            self.next_in = next_in
+            self.avail_in = avail_in
+            self.total_in = total_in
+            self.next_out = next_out
+            self.avail_out = avail_out
+            self.total_out = total_out
+            self.msg = msg
+            self.state = state
+            self.zalloc = zalloc
+            self.zfree = zfree
+            self.opaque = opaque
+            self.data_type = data_type
+            self.adler = adler
+            self.reserved = reserved
+        }
+    }
     #endif
 
     //public func gzopen(_: UnsafePointer<CChar>!, _: UnsafePointer<CChar>!) -> gzFile!

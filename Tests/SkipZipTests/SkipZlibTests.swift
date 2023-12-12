@@ -35,6 +35,7 @@ final class SkipZlibTests: XCTestCase {
         XCTAssertEqual(zlib.Z_DEFAULT_COMPRESSION, -1)
 
 
+        let stream = ZlibLibrary.z_stream()
     }
 }
 
