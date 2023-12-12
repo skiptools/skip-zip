@@ -43,6 +43,12 @@ final class SkipZlibTests: XCTestCase {
         #else
         XCTAssertEqual(-2, zlib.deflateEnd(&stream))
         #endif
+
+
+        XCTAssertEqual(65520, zlib.adler32_combine(0, 0, 0))
+        XCTAssertEqual(0, zlib.crc32_combine(0, 0, 0))
+        XCTAssertEqual(2, zlib.adler32_combine(1, 2, 3))
+        XCTAssertEqual(29518389, zlib.crc32_combine(1, 2, 3))
     }
 }
 
