@@ -276,6 +276,24 @@ public final class ZlibLibrary {
     public typealias ZUInt32 = UInt32
     #endif
 
+
+    // SKIP EXTERN
+    public func adler32(_ adler: ZUInt, _ buf: UnsafePointer<UInt8>!, _ len: ZUInt32) -> ZUInt { return zlib.adler32(adler, buf, len) }
+    // SKIP EXTERN
+    public func adler32_z(_ adler: ZUInt, _ buf: UnsafePointer<UInt8>!, _ len: Int) -> ZUInt { return zlib.adler32_z(adler, buf, len) }
+    // SKIP EXTERN
+    public func crc32(_ crc: ZUInt, _ buf: UnsafePointer<UInt8>!, _ len: ZUInt32) -> ZUInt { return zlib.crc32(crc, buf, len) }
+    // SKIP EXTERN
+    public func crc32_z(_ crc: ZUInt, _ buf: UnsafePointer<UInt8>!, _ len: Int) -> ZUInt { return zlib.crc32_z(crc, buf, len) }
+    // SKIP EXTERN
+    //public func crc32_combine_op(_ crc1: UInt64, _ crc2: UInt64, _ op: UInt64) -> UInt64 { return zlib.crc32_combine_op(crc1, crc2, op) }
+    // SKIP EXTERN
+    public func adler32_combine(_ a1: ZUInt, _ a2: ZUInt, _ a3: Int) -> ZUInt { return zlib.adler32_combine(a1, a2, a3) }
+    // SKIP EXTERN
+    public func crc32_combine(_ a1: ZUInt, _ a2: ZUInt, _ a3: Int) -> ZUInt { return zlib.crc32_combine(a1, a2, a3) }
+    // SKIP EXTERN
+//    public func crc32_combine_gen(_ a1: Int) -> ZUInt { return zlib.crc32_combine_gen(a1) }
+
     // disabled to isolate Android emulator error
     #if !SKIP
 
@@ -382,16 +400,6 @@ public final class ZlibLibrary {
     // SKIP EXTERN
     public func gzclearerr(_ file: gzFile!) { return zlib.gzclearerr(file)}
     // SKIP EXTERN
-    public func adler32(_ adler: ZUInt, _ buf: UnsafePointer<UInt8>!, _ len: ZUInt32) -> ZUInt { return zlib.adler32(adler, buf, len) }
-    // SKIP EXTERN
-    public func adler32_z(_ adler: ZUInt, _ buf: UnsafePointer<UInt8>!, _ len: Int) -> ZUInt { return zlib.adler32_z(adler, buf, len) }
-    // SKIP EXTERN
-    public func crc32(_ crc: ZUInt, _ buf: UnsafePointer<UInt8>!, _ len: ZUInt32) -> ZUInt { return zlib.crc32(crc, buf, len) }
-    // SKIP EXTERN
-    public func crc32_z(_ crc: ZUInt, _ buf: UnsafePointer<UInt8>!, _ len: Int) -> ZUInt { return zlib.crc32_z(crc, buf, len) }
-    // SKIP EXTERN
-    //public func crc32_combine_op(_ crc1: UInt64, _ crc2: UInt64, _ op: UInt64) -> UInt64 { return zlib.crc32_combine_op(crc1, crc2, op) }
-    // SKIP EXTERN
     public func deflateInit_(_ strm: z_streamp!, _ level: Int32, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.deflateInit_(strm, level, version, stream_size) }
     // SKIP EXTERN
     public func inflateInit_(_ strm: z_streamp!, _ version: UnsafePointer<CChar>!, _ stream_size: Int32) -> Int32 { return zlib.inflateInit_(strm, version, stream_size) }
@@ -411,12 +419,6 @@ public final class ZlibLibrary {
     public func gztell(_ file: gzFile!) -> Int { return zlib.gztell(file) }
     // SKIP EXTERN
     public func gzoffset(_ file: gzFile!) -> Int { return zlib.gzoffset(file) }
-    // SKIP EXTERN
-    public func adler32_combine(_ a1: ZUInt, _ a2: ZUInt, _ a3: Int) -> ZUInt { return zlib.adler32_combine(a1, a2, a3) }
-    // SKIP EXTERN
-    public func crc32_combine(_ a1: ZUInt, _ a2: ZUInt, _ a3: Int) -> ZUInt { return zlib.crc32_combine(a1, a2, a3) }
-    // SKIP EXTERN
-//    public func crc32_combine_gen(_ a1: Int) -> ZUInt { return zlib.crc32_combine_gen(a1) }
     // SKIP EXTERN
     public func zError(_ a1: Int32) -> UnsafePointer<CChar>! { return zlib.zError(a1) }
     // SKIP EXTERN
