@@ -1,3 +1,15 @@
+## 0.2.1
+
+Released 2023-12-22
+
+  - CI tweaks
+  - Add remaining zlib JNA mappings
+  - Update z_streamp
+  - Implement z_stream struct
+  - Internalize zlib API
+  - Add zlib import
+  - Add more tests; add changelog
+
 ## 0.2.0
 
 Released 2023-10-23
