@@ -5,6 +5,9 @@
 // as published by the Free Software Foundation https://fsf.org
 import Swift
 import Foundation
+#if SKIP
+import SkipFFI
+#endif
 
 private let zlib = ZlibLibrary()
 private let minizip = MiniZipLibrary()
@@ -85,7 +88,7 @@ public final class ZipWriter {
 
         let len = zip_UInt32(data.count)
 
-        let success = data.withBytes { buf in
+        let success = data.withUnsafeBytes { buf in
             minizip.zipWriteInFileInZip(file: file, buf: buf.baseAddress!, len: len)
         }
 
@@ -118,28 +121,4 @@ public enum CompressionMethod : Int32 {
     //case xz = 95 // unsupported
     /// `MZ_COMPRESS_METHOD_AES`
     //case aes = 99 // unsupported
-}
-
-#if SKIP
-import SkipFFI
-
-extension com.sun.jna.ptr.PointerByReference {
-    var baseAddress: OpaquePointer {
-        value
-    }
-}
-#endif
-
-extension Data {
-    /// Cover for `withUnsafeBytes`; we cannot call it `withUnsafeBytes`, since Skip won't be able to disambiguate against Foundation's stub
-    public func withBytes<ResultType>(_ body: (UnsafeRawBufferPointer) throws -> ResultType) rethrows -> ResultType {
-        #if !SKIP
-        try withUnsafeBytes { try body($0) }
-        #else
-        let buf = java.nio.ByteBuffer.allocateDirect(self.count)
-        buf.put(self.kotlin(nocopy: true))
-        let ptr = com.sun.jna.Native.getDirectBufferPointer(buf)
-        return body(com.sun.jna.ptr.PointerByReference(ptr))
-        #endif
-    }
 }
