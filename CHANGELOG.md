@@ -1,3 +1,27 @@
+## 0.3.0
+
+Released 2024-02-20
+
+  - Improved zip stream writing
+  - Add checksum tests
+  - Create structure for unz_file_info64
+  - Use 64-bit minizip API variants
+  - Add zip test cases
+  - Use MiniZip for ZipArchive
+  - Update dependencies
+
+## 0.2.2
+
+Released 2024-02-20
+
+  - Improved zip stream writing
+  - Add checksum tests
+  - Create structure for unz_file_info64
+  - Use 64-bit minizip API variants
+  - Add zip test cases
+  - Use MiniZip for ZipArchive
+  - Update dependencies
+
 ## 0.2.1
 
 Released 2023-12-22
