@@ -49,6 +49,12 @@ public final class ZipReader {
     public var currentOffset: Int64 {
         minizip.unzGetOffset64(file: file)
     }
+
+//    public var currentFileSize: Int64 {
+//        let res = minizip.unzGetCurrentFileInfo64(file: <#T##unzFile#>, pfile_info: <#T##unz_file_info64_ptr?#>, filename: <#T##UnsafeMutablePointer<CChar>?#>, filename_size: <#T##zip_UInt#>, extrafield: <#T##UnsafeMutableRawPointer?#>, extrafield_size: <#T##zip_UInt#>, comment: <#T##UnsafeMutablePointer<CChar>?#>, comment_size: <#T##zip_UInt#>)
+//
+//
+//    }
 }
 
 
