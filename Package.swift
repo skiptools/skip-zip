@@ -6,18 +6,30 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [.iOS(.v16), .macOS(.v13), .tvOS(.v16), .watchOS(.v9), .macCatalyst(.v16)],
     products: [
-    .library(name: "SkipZip", targets: ["SkipZip"]),
+        .library(name: "SkipZip", type: .dynamic, targets: ["SkipZip"]),
     ],
     dependencies: [
         .package(url: "https://source.skip.tools/skip.git", from: "0.7.42"),
+        .package(url: "https://source.skip.tools/skip-unit.git", from: "0.5.0"),
         .package(url: "https://source.skip.tools/skip-foundation.git", from: "0.3.12"),
         .package(url: "https://source.skip.tools/skip-ffi.git", from: "0.2.4"),
     ],
     targets: [
-    .target(name: "SkipZip", dependencies: [.product(name: "SkipFoundation", package: "skip-foundation"), .product(name: "SkipFFI", package: "skip-ffi")], plugins: [.plugin(name: "skipstone", package: "skip")]),
-    .testTarget(name: "SkipZipTests", dependencies: [
-        "SkipZip",
-        .product(name: "SkipTest", package: "skip")
-    ], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        .target(name: "SkipZip", dependencies: [
+            "MiniZip",
+            .product(name: "SkipFoundation", package: "skip-foundation"),
+            .product(name: "SkipFFI", package: "skip-ffi")
+        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        .testTarget(name: "SkipZipTests", dependencies: [
+            "SkipZip",
+            .product(name: "SkipTest", package: "skip")
+        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        .target(name: "MiniZip", dependencies: [
+            .product(name: "SkipUnit", package: "skip-unit")
+        ], sources: ["src"], cSettings: [
+            .define("ZLIB_COMPAT"),
+            .define("HAVE_ZLIB"),
+            .define("MZ_ZIP_NO_CRYPTO"),
+        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]
 )

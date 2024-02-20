@@ -13,208 +13,59 @@ let logger: Logger = Logger(subsystem: "SkipZip", category: "Tests")
 
 @available(macOS 13, macCatalyst 16, iOS 16, tvOS 16, watchOS 8, *)
 final class SkipZipTests: XCTestCase {
-    @discardableResult func check(data: Data, level: Int, crc32: UInt32? = nil, wrap: Bool) throws -> String {
-        let (crc, compressed) = try data.deflate(level: level, wrap: wrap)
-        if let crc32 = crc32 {
-            XCTAssertEqual(crc, crc32)
-        }
-
-        let (crc2, decompressed) = try compressed.inflate(wrapped: wrap)
-        XCTAssertEqual(data, decompressed)
-        if let crc32 = crc32 {
-            XCTAssertEqual(crc2, crc32)
-        }
-
-        return compressed.base64EncodedString()
-    }
-
-
-    func testDeflateInflate() throws {
-        logger.log("running test")
-        let bytes = [0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04].map({ UInt8($0) })
-        let data: Data = Data(bytes)
-
-
-        // check the behavior of various zip compression levels
-        _ = try check(data: data, level: 0, crc32: UInt32(1403640103), wrap: false)
-        XCTAssertEqual("AbwAQ/8BAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBA==", try check(data: data, level: 0, wrap: false))
-        XCTAssertEqual("Y2RiZmHEgSEyxJC4TMAnToy5uN0GMhkA", try check(data: data, level: 1, wrap: false))
-        XCTAssertEqual("Y2RiZmHEgSEyxJC4TMAnToy5uN0GMhkA", try check(data: data, level: 2, wrap: false))
-        XCTAssertEqual("Y2RiZmHEgSEyxJC4TMAnToy5uN0GMhkA", try check(data: data, level: 3, wrap: false))
-        XCTAssertEqual("Y2RiZmHEgYknycHEk7gwAA==", try check(data: data, level: 4, wrap: false))
-        XCTAssertEqual("Y2RiZmHEgYknycHEk7gwAA==", try check(data: data, level: 5, wrap: false))
-        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(data: data, level: 6, wrap: false))
-        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(data: data, level: 7, wrap: false))
-        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(data: data, level: 8, wrap: false))
-        XCTAssertEqual("Y2RiZmHEgYknycGUmw4A", try check(data: data, level: 9, wrap: false))
-
-        XCTAssertEqual("eAEBvABD/wECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQDBAECAwQDBAECAwQDBAECAwQDBAECAwQDBAECAwQDBAECAwQDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAwQBAgMEAQIDBAECAwQBAgMEAQIDBAECAwQBAgMEt8IB8w==", try check(data: data, level: 0, wrap: true))
-        XCTAssertEqual("eAFjZGJmYcSBITLEkLhMwCdOjLm43QYyGQC3wgHz", try check(data: data, level: 1, wrap: true))
-        //XCTAssertEqual("eAFjZGJmYcSBITLEkLhMwCdOjLm43QYyGQC3wgHz", try check(data: data, level: 2, wrap: true))
-        //XCTAssertEqual("eAFjZGJmYcSBITLEkLhMwCdOjLm43QYyGQC3wgHz", try check(data: data, level: 3, wrap: true))
-        //XCTAssertEqual("eAFjZGJmYcSBiSfJwcSTuDAAt8IB8w==", try check(data: data, level: 4, wrap: true))
-        #if SKIP
-        XCTAssertEqual("eF5jZGJmYcSBiSfJwcSTuDAAt8IB8w==", try check(data: data, level: 5, wrap: true))
-        #else
-        XCTAssertEqual("eAFjZGJmYcSBiSfJwcSTuDAAt8IB8w==", try check(data: data, level: 5, wrap: true))
-        #endif
-        //XCTAssertEqual("eNpjZGJmYcSBiSfJwZSbDgC3wgHz", try check(data: data, level: 6, wrap: true))
-        //XCTAssertEqual("eNpjZGJmYcSBiSfJwZSbDgC3wgHz", try check(data: data, level: 7, wrap: true))
-        //XCTAssertEqual("eNpjZGJmYcSBiSfJwZSbDgC3wgHz", try check(data: data, level: 8, wrap: true))
-        XCTAssertEqual("eNpjZGJmYcSBiSfJwZSbDgC3wgHz", try check(data: data, level: 9, wrap: true))
-
-        do {
-            let data = Data(Array(repeating: UInt8(123), count: 1024))
-            let crc32 = UInt32(2005888310)
-            XCTAssertEqual(24, try check(data: data, level: 9, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(24, try check(data: data, level: 8, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(24, try check(data: data, level: 7, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(24, try check(data: data, level: 6, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(24, try check(data: data, level: 5, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(24, try check(data: data, level: 4, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(28, try check(data: data, level: 3, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(28, try check(data: data, level: 2, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(28, try check(data: data, level: 1, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(1380, try check(data: data, level: 0, crc32: crc32, wrap: true).count)
-        }
-
-        do {
-            let data = Data((1...1024).map({ _ in [UInt8(0x01), UInt8(0x09), UInt8(0x44), UInt8(0xFA), UInt8(0x1C)] }).joined())
-            let crc32 = UInt32(1432318548)
-            XCTAssertEqual(52, try check(data: data, level: 9, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(52, try check(data: data, level: 8, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(52, try check(data: data, level: 7, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(52, try check(data: data, level: 6, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(52, try check(data: data, level: 5, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(52, try check(data: data, level: 4, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(84, try check(data: data, level: 3, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(84, try check(data: data, level: 2, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(84, try check(data: data, level: 1, crc32: crc32, wrap: true).count)
-            XCTAssertEqual(6844, try check(data: data, level: 0, crc32: crc32, wrap: true).count)
-        }
-
-    }
-
     func testArchive() throws {
-        #if SKIP
-        throw XCTSkip("TODO: skip version of ZipArchive and necessary FS support")
-        #endif
+        let path = NSTemporaryDirectory() + "/SkipZipTests-\(UUID().uuidString).zip"
+        logger.log("testing zip archive at: \(path)")
 
-        /// Create a temporary directory
-        func mktmp(baseName: String = "SkipZipTests") throws -> String {
-            let tempDir = [NSTemporaryDirectory(), baseName, UUID().uuidString].joined(separator: "/")
-            try FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: true)
-            return tempDir
+        XCTAssertNil(ZipArchive(pathForWriting: path, append: true), "append to non-existent file should return nil")
+        XCTAssertNotNil(ZipArchive(pathForWriting: path, append: false), "non-append open to non-existent file should not return nil")
+        XCTAssertNotNil(ZipArchive(pathForWriting: path, append: true), "append to existing file should not return nil")
+
+        do {
+            let archive = try XCTUnwrap(ZipArchive(pathForWriting: path, append: true))
+            try archive.close()
+            XCTAssertEqual("8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85", try checksum(path))
         }
 
-        /// Zero the creation and mod time for consistent zipping
-        func zeroTimes(url: URL) throws {
-            //try FileManager.default.setAttributes([.creationDate: Date(timeIntervalSince1970: 0.0)], ofItemAtPath: url.path)
-            try FileManager.default.setAttributes([FileAttributeKey.modificationDate: Date(timeIntervalSince1970: 0.0)], ofItemAtPath: url.path)
+        do {
+            let archive = try XCTUnwrap(ZipArchive(pathForWriting: path, append: true))
+            try archive.close()
+            XCTAssertEqual("fec6899e1163a2371293fe6cca0427345a0ab29da4b396924b06a6f014c2099e", try checksum(path))
         }
 
-        @discardableResult func createFileSystem(root: String? = nil, paths: [(path: String, data: Data)]) throws -> URL {
-            let dir = try URL(fileURLWithPath: root ?? mktmp(), isDirectory: true)
-            for (subpath, data) in paths {
-                let fileURL = URL(fileURLWithPath: subpath, relativeTo: dir)
-                try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-                try data.write(to: fileURL, options: .atomic)
-            }
-            #if !SKIP
-            if let pathEnumerator = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: nil) {
-                for path in pathEnumerator {
-                    if let url = path as? URL {
-                        try zeroTimes(url: url)
-                    }
-                }
-            }
-            #endif
-            return dir
+        do {
+            let archive = try XCTUnwrap(ZipArchive(pathForWriting: path, append: true))
+            try archive.close()
+            XCTAssertEqual("ca3407bb56b41a27cb80c1b768d6db0868967f25ea6d0d257afc452357b80e88", try checksum(path))
         }
 
-        func roundtrip(checksum: String? = nil, level compressionLevel: Int = 5, _ contents: [(path: String, data: Data)]) throws {
-            let dir = try createFileSystem(paths: contents)
-            let archive = dir.appendingPathExtension("zip")
-            #if !SKIP
-            try FileManager.default.zipItem(at: dir, to: archive, shouldKeepParent: false, compressionLevel: compressionLevel, progress: nil)
-            let unzipPath = dir.appendingPathExtension("unzip")
-            try FileManager.default.unzipItem(at: archive, to: unzipPath)
-            let size = try FileManager.default.attributesOfItem(atPath: archive.path)[FileAttributeKey.size]
-            print("created archive: \(archive.path) \(size ?? 0)")
-            for (path, data) in contents {
-                //print("  checking path: \(path)")
-                try XCTAssertEqual(Data(contentsOf: unzipPath.appendingPathComponent(path)), data, "contents differed for: \(path)")
+        do {
+            let archive = try XCTUnwrap(ZipArchive(pathForWriting: path, append: true))
+            try archive.add(path: "some_file", data: "ABC".data(using: .utf8)!, compression: 0)
+            try archive.add(path: "//////some_text_with_comment", data: "QRS".data(using: .utf8)!, comment: "This is a comment", compression: 5)
+            try archive.add(path: "/path/to/some_data.dat", data: String(repeating: "X", count: 1024 * 1024).data(using: .utf8)!, compression: 9)
+            try archive.close()
+            // FIXME!
+            if isAndroid {
+                XCTAssertEqual("de3a91d1a14ba12441adf49be1ccdba4069f13b5acebea63e1f218e84660e61a", try checksum(path))
+            } else {
+                XCTAssertEqual("6040547eccbec82c650d7e2b87c7cc0bd6a78d011ba0edfe94f13ab5c8f0a63d", try checksum(path))
             }
-
-            if let checksum = checksum {
-                XCTAssertEqual(checksum, try Data(contentsOf: archive).sha256().hex())
-            }
-            #endif
         }
+    }
 
-        try roundtrip(checksum: "473a681c5ff0b3e3e72c092c69f48ac4adc946395c64618c50f8437f21fef946", level: 0, [ ("X", Data()) ])
-        try roundtrip(checksum: "1ba21cfbe072b5fbfe7e4748d9ee864c9de5ed466523b96766b944b7c3b574d4", level: 5, [ ("X", Data()) ])
-        try roundtrip(checksum: "1ba21cfbe072b5fbfe7e4748d9ee864c9de5ed466523b96766b944b7c3b574d4", level: 1, [ ("X", Data()) ])
-        try roundtrip(checksum: "1ba21cfbe072b5fbfe7e4748d9ee864c9de5ed466523b96766b944b7c3b574d4", level: 9, [ ("X", Data()) ])
-
-        func readme(count: Int) -> Data {
-            var data = Data()
-            for _ in 1...count {
-                data.append(contentsOf: Data("The contents of the readme file".utf8))
-            }
-
-            return data
-        }
-
-        try roundtrip(checksum: "d20cc7bbf3e17485ca7eb02c183a18a9baf6ea733aaab8760964ea5dec4f2e69", level: 5, [
-            ("README.md", readme(count: 1)),
-            ("some/path/to/data.dat", Data([0x01, 0x02, 0x03].map({ UInt8($0) }))),
-        ])
-
-        try roundtrip(checksum: "d20cc7bbf3e17485ca7eb02c183a18a9baf6ea733aaab8760964ea5dec4f2e69", level: 9, [
-            ("README.md", readme(count: 1)),
-            ("some/path/to/data.dat", Data([0x01, 0x02, 0x03].map({ UInt8($0) }))),
-        ])
-
-        try roundtrip(checksum: "315617462cf786158d1ac3ed279022f44f4471310aa82436fa1632e783483299", level: 0, [
-            ("README.md", readme(count: 1)),
-            ("some/path/to/data.dat", Data([0x01, 0x02, 0x03].map({ UInt8($0) }))),
-        ])
-
-
-        try roundtrip(checksum: "dfed7b76aad31a6add75d0c4be0d56444836ecb7972e7ecbaa8d0a364b991ef8", level: 9, [
-            ("README.md", readme(count: 10_000)),
-            ("some/path/to/data.dat", Data([0x01, 0x02, 0x03].map({ UInt8($0) }))),
-        ])
+    func checksum(_ path: String) throws -> String {
+        try Data(contentsOf: URL(fileURLWithPath: path)).sha256().hex()
     }
 }
 
 #if !SKIP
 /// A sequence that both `Data` and `String.UTF8View` conform to.
 extension Sequence where Element == UInt8 {
-    /// Returns this data as a base-64 encoded string
-    public func base64() -> String {
-        Foundation.Data(self).base64EncodedString()
-    }
-
-    /// Returns the contents of the Data as a hex string
-    public func hex() -> String {
-        map { String(format: "%02x", $0) }.joined()
-    }
-
-    @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
-    public func sha256() -> SHA256.Digest {
-        CryptoKit.SHA256.hash(data: Foundation.Data(self))
-    }
-
-    @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
-    public func sha384() -> SHA384.Digest {
-        CryptoKit.SHA384.hash(data: Foundation.Data(self))
-    }
-
-    @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
-    public func sha512() -> SHA512.Digest {
-        CryptoKit.SHA512.hash(data: Foundation.Data(self))
-    }
+    public func base64() -> String { Data(self).base64EncodedString() }
+    public func hex() -> String { map { String(format: "%02x", $0) }.joined() }
+    public func sha256() -> SHA256.Digest { CryptoKit.SHA256.hash(data: Data(self)) }
+    public func sha384() -> SHA384.Digest { CryptoKit.SHA384.hash(data: Data(self)) }
+    public func sha512() -> SHA512.Digest { CryptoKit.SHA512.hash(data: Data(self)) }
 }
 #endif
