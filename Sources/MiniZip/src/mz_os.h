@@ -17,15 +17,18 @@ extern "C" {
 
 /***************************************************************************/
 
-#if defined(__APPLE__)
-#  define MZ_VERSION_MADEBY_HOST_SYSTEM (MZ_HOST_SYSTEM_OSX_DARWIN)
-#elif defined(__riscos__)
-#  define MZ_VERSION_MADEBY_HOST_SYSTEM (MZ_HOST_SYSTEM_RISCOS)
-#elif defined(_WIN32)
-#  define MZ_VERSION_MADEBY_HOST_SYSTEM (MZ_HOST_SYSTEM_WINDOWS_NTFS)
-#else
+// SkipZip: we override this for consistent zip checksum creation
 #  define MZ_VERSION_MADEBY_HOST_SYSTEM (MZ_HOST_SYSTEM_UNIX)
-#endif
+
+//#if defined(__APPLE__)
+//#  define MZ_VERSION_MADEBY_HOST_SYSTEM (MZ_HOST_SYSTEM_OSX_DARWIN)
+//#elif defined(__riscos__)
+//#  define MZ_VERSION_MADEBY_HOST_SYSTEM (MZ_HOST_SYSTEM_RISCOS)
+//#elif defined(_WIN32)
+//#  define MZ_VERSION_MADEBY_HOST_SYSTEM (MZ_HOST_SYSTEM_WINDOWS_NTFS)
+//#else
+//#  define MZ_VERSION_MADEBY_HOST_SYSTEM (MZ_HOST_SYSTEM_UNIX)
+//#endif
 
 #if defined(HAVE_LZMA) || defined(HAVE_LIBCOMP)
 #  define MZ_VERSION_MADEBY_ZIP_VERSION (63)

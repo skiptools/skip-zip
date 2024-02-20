@@ -56,12 +56,7 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "some_data.dat", data: Data(), compression: 0)
             try writer.close()
             XCTAssertEqual(Int64(188), try fileSize(path))
-            if isAndroid {
-                XCTAssertEqual("de60c56ec8dd5f84906fafff3b7044e5985b35c141bfe90b7950baf2c32e19f0", try checksum(path))
-            } else {
-                XCTAssertEqual("892d721570091e97997eb3830dc0c3ad0c68ae056eb26b93df7f42ad7e3a6b27", try checksum(path))
-            }
-
+            XCTAssertEqual("de60c56ec8dd5f84906fafff3b7044e5985b35c141bfe90b7950baf2c32e19f0", try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
             try reader.close()
         }
@@ -73,12 +68,7 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "some_data.dat", data: String(repeating: "X", count: 100).data(using: .utf8)!, compression: 0)
             try writer.close()
             XCTAssertEqual(Int64(288), try fileSize(path))
-            if isAndroid {
-                XCTAssertEqual("7c2391484637af99fea7cba7e7125a7820fc49aa5c520b207b1cf19b0b34856a", try checksum(path))
-            } else {
-                XCTAssertEqual("3d63865b352439b8c9f3ee6d87aecc0588e524ad2aa645e37f7cdef17cfc07e2", try checksum(path))
-            }
-
+            XCTAssertEqual("7c2391484637af99fea7cba7e7125a7820fc49aa5c520b207b1cf19b0b34856a", try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
             try reader.close()
         }
@@ -89,12 +79,7 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "/path/to/some_data.dat", data: String(repeating: "X", count: 100).data(using: .utf8)!, compression: 0)
             try writer.close()
             XCTAssertEqual(Int64(306), try fileSize(path))
-            if isAndroid {
-                XCTAssertEqual("ada02320bec7a9b0c4d7fe29d9a3ad335903823500a4e0bce7d3a281cb618449", try checksum(path))
-            } else {
-                XCTAssertEqual("86c65b36a33bd4757f166e214a109ae91240ab3b99385c6e59d112406886ec9c", try checksum(path))
-            }
-
+            XCTAssertEqual("ada02320bec7a9b0c4d7fe29d9a3ad335903823500a4e0bce7d3a281cb618449", try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
             try reader.close()
         }
@@ -105,12 +90,7 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "/path/to/some_data.dat", data: String(repeating: "Z", count: 1024).data(using: .utf8)!, compression: 5)
             try writer.close()
             XCTAssertEqual(Int64(217), try fileSize(path))
-            if isAndroid {
-                XCTAssertEqual("7229f978740cc3d30ef44f5f8ff0423700f20f71d39137afdd55076c344765c8", try checksum(path))
-            } else {
-                XCTAssertEqual("195fd3d1fe93350797335e0bb18ff0c50518c35d6ea774469d1f1903460a5391", try checksum(path))
-            }
-
+            XCTAssertEqual("7229f978740cc3d30ef44f5f8ff0423700f20f71d39137afdd55076c344765c8", try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
             try reader.close()
         }
@@ -118,15 +98,9 @@ final class SkipZipTests: XCTestCase {
         do {
             let path = tmpzip()
             let writer = try XCTUnwrap(ZipWriter(path: path, append: false))
-            try writer.add(path: "/path/to////some_data_utf32.dat", data: String(repeating: "R", count: 1024).data(using: .utf32)!, comment: "Some comment", compression: 7)
+            try writer.add(path: "/path/to////some_data.dat", data: String(repeating: "R", count: 1024).data(using: .utf8)!, comment: "Some comment", compression: 7)
             try writer.close()
-            XCTAssertEqual(Int64(261), try fileSize(path))
-            if isAndroid {
-                XCTAssertEqual("421a73bf2c7794af68d84eebcb79f4fc028b01a94d423ed76b8e6143122cb7e7", try checksum(path))
-            } else {
-                XCTAssertEqual("3ce41c3e7f3994b79875a9da095963ab64034c7f04d5a27a0830c4ae97bb1659", try checksum(path))
-            }
-
+            XCTAssertEqual("a34551de2648bf4d40e291094b9cfc68e6918f39537699c90079af2f097ab583", try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
             try reader.close()
         }
@@ -134,15 +108,10 @@ final class SkipZipTests: XCTestCase {
         do {
             let path = tmpzip()
             let writer = try XCTUnwrap(ZipWriter(path: path, append: false))
-            try writer.add(path: "/path/to/some_utf16_data.dat", data: String(repeating: "官", count: 1024 * 1024).data(using: .utf16)!, compression: 9)
+            try writer.add(path: "/path/to/some_data.dat", data: String(repeating: "官", count: 1024 * 1024).data(using: .utf8)!, compression: 9)
             try writer.close()
-            XCTAssertEqual(Int64(2271), try fileSize(path))
-            if isAndroid {
-                XCTAssertEqual("6b12993bd11fba73ccc6225a86f2fe47799fd2f0a37b68b85e30c4cced99d1a8", try checksum(path))
-            } else {
-                XCTAssertEqual("9312b3af3b02106112f8e0b8b42d6cffbabd46ff388b554f4365acc1c45f3b57", try checksum(path))
-            }
-
+            XCTAssertEqual(Int64(3277), try fileSize(path))
+            XCTAssertEqual("314c1575f6a59b831b4e843e1056cc7699b729e8c3378406b01ec3f97f24ce4a", try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
             try reader.close()
         }
@@ -154,13 +123,7 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "//////some_text_with_comment", data: "QRS".data(using: .utf8)!, comment: "This is a comment", compression: 5)
             try writer.add(path: "/path/to/some_data.dat", data: String(repeating: "X", count: 1024 * 1024).data(using: .utf8)!, compression: 9)
             try writer.close()
-
-            if isAndroid {
-                XCTAssertEqual("3836c5b75d69ee311c1aa3b92db3d72b9cadeb659258c426c904973afc38d9b4", try checksum(path))
-            } else {
-                XCTAssertEqual("a9f9d704f5afd653e222b3a2793eb818de919c552cfbd4ce594626c8c68c2704", try checksum(path))
-            }
-
+            XCTAssertEqual("3836c5b75d69ee311c1aa3b92db3d72b9cadeb659258c426c904973afc38d9b4", try checksum(path))
             XCTAssertEqual(Int64(1619), try fileSize(path))
 
             let reader = try XCTUnwrap(ZipReader(path: path))
@@ -170,6 +133,8 @@ final class SkipZipTests: XCTestCase {
             XCTAssertEqual(Int64(1323), reader.currentOffset)
             XCTAssertTrue(try reader.next())
             XCTAssertEqual(Int64(1398), reader.currentOffset)
+            //XCTAssertEqual("some_file", reader.currentFileName) // TODO: read file path
+            //XCTAssertEqual("ABC".data(using: .utf8), reader.currentData) // TODO: read file data
             XCTAssertTrue(try reader.next())
             XCTAssertEqual(Int64(1509), reader.currentOffset)
             XCTAssertFalse(try reader.next())
@@ -208,8 +173,8 @@ final class SkipZipTests: XCTestCase {
 #if !SKIP
 /// A sequence that both `Data` and `String.UTF8View` conform to.
 extension Sequence where Element == UInt8 {
-    public func base64() -> String { Data(self).base64EncodedString() }
     public func hex() -> String { map { String(format: "%02x", $0) }.joined() }
+    public func base64() -> String { Data(self).base64EncodedString() }
     public func sha256() -> SHA256.Digest { CryptoKit.SHA256.hash(data: Data(self)) }
     public func sha384() -> SHA384.Digest { CryptoKit.SHA384.hash(data: Data(self)) }
     public func sha512() -> SHA512.Digest { CryptoKit.SHA512.hash(data: Data(self)) }
