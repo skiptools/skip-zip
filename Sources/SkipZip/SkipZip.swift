@@ -12,6 +12,7 @@ private let minizip = MiniZipLibrary()
 /// An unsigned 32-Bit Integer representing a checksum.
 public typealias CRC32 = UInt32
 
+
 public class ZipArchive {
     let file: zipFile
 
@@ -30,19 +31,13 @@ public class ZipArchive {
     ///   - compression: the compression mode
     ///   - level: the compression level to use
     public func add(path: String, data: Data, comment: String? = nil, compression: Int?) throws {
-        let f = minizip.zipOpenNewFileInZip(file: file, filename: path, zipfi: nil, extrafield_local: nil, size_extrafield_local: zip_UInt16(0), extrafield_global: nil, size_extrafield_global: zip_UInt16(0), comment: comment, compression_method: compression == nil ? CompressionMethod.store.rawValue : CompressionMethod.deflate.rawValue, level: Int32(compression ?? 0))
+        try check(minizip.zipOpenNewFileInZip(file: file, filename: path, zipfi: nil, extrafield_local: nil, size_extrafield_local: zip_UInt16(0), extrafield_global: nil, size_extrafield_global: zip_UInt16(0), comment: comment, compression_method: compression == nil ? CompressionMethod.store.rawValue : CompressionMethod.deflate.rawValue, level: Int32(compression ?? 0)))
 
         let len = zip_UInt32(data.count)
-        #if SKIP
-        let buf = java.nio.ByteBuffer.allocateDirect(len)
-        buf.put(data.kotlin(nocopy: true))
-        let ptr = com.sun.jna.Native.getDirectBufferPointer(buf)
-        let success = minizip.zipWriteInFileInZip(file: file, buf: ptr, len: len)
-        #else
-        let success = try data.withUnsafeBytes { buf in
-            minizip.zipWriteInFileInZip(file: file, buf: buf, len: len)
+
+        let success = data.withBytes { buf in
+            minizip.zipWriteInFileInZip(file: file, buf: buf.baseAddress!, len: len)
         }
-        #endif
 
         try check(minizip.zipCloseFileInZip(file: file))
         try check(success) // check the result code after we close the internal file
@@ -86,3 +81,26 @@ public enum CompressionMethod : Int32 {
     //case aes = 99 // unsupported
 }
 
+#if SKIP
+import SkipFFI
+
+extension com.sun.jna.ptr.PointerByReference {
+    var baseAddress: OpaquePointer {
+        value
+    }
+}
+#endif
+
+extension Data {
+    /// Cover for `withUnsafeBytes`; we cannot call it `withUnsafeBytes`, since Skip won't be able to disambiguate against Foundation's stub
+    public func withBytes<ResultType>(_ body: (UnsafeRawBufferPointer) throws -> ResultType) rethrows -> ResultType {
+        #if !SKIP
+        try withUnsafeBytes { try body($0) }
+        #else
+        let buf = java.nio.ByteBuffer.allocateDirect(self.count)
+        buf.put(self.kotlin(nocopy: true))
+        let ptr = com.sun.jna.Native.getDirectBufferPointer(buf)
+        return body(com.sun.jna.ptr.PointerByReference(ptr))
+        #endif
+    }
+}
