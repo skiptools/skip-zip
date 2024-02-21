@@ -53,13 +53,130 @@ public final class ZipReader {
         minizip.unzGetOffset64(file: file)
     }
 
-//    public var currentFileSize: Int64 {
-//        let res = minizip.unzGetCurrentFileInfo64(file: <#T##unzFile#>, pfile_info: <#T##unz_file_info64_ptr?#>, filename: <#T##UnsafeMutablePointer<CChar>?#>, filename_size: <#T##zip_UInt#>, extrafield: <#T##UnsafeMutableRawPointer?#>, extrafield_size: <#T##zip_UInt#>, comment: <#T##UnsafeMutablePointer<CChar>?#>, comment_size: <#T##zip_UInt#>)
-//
-//
-//    }
+    private var currentEntryInfo: unz_file_info64 {
+        get throws {
+            #if SKIP
+            let fileInfoPtr = unz_file_info64()
+            #else
+            let fileInfoPtr = unz_file_info64_ptr()
+            #endif
+            try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: fileInfoPtr, filename: nil, filename_size: 0, extrafield: nil, extrafield_size: 0, comment: nil, comment_size: 0))
+            #if SKIP
+            fileInfoPtr.read()
+            return fileInfoPtr
+            #else
+            return fileInfoPtr.pointee
+            #endif
+        }
+    }
+
+    /// Returns the name of the current entry
+    public var currentEntryName: String? {
+        get throws {
+            let fileInfo = try self.currentEntryInfo
+            let len = zip_UInt(fileInfo.size_filename)
+            if len == zip_UInt(0) {
+                return nil
+            }
+
+            return try withStringPointer(size: Int(len)) { nameBuffer in
+                try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: nil, filename: nameBuffer, filename_size: len, extrafield: nil, extrafield_size: 0, comment: nil, comment_size: 0))
+            }
+        }
+    }
+
+    /// Returns the comment for the current entry
+    public var currentEntryComment: String? {
+        get throws {
+            let fileInfo = try self.currentEntryInfo
+            let len = zip_UInt(fileInfo.size_file_comment)
+            if len == zip_UInt(0) {
+                return nil
+            }
+            return try withStringPointer(size: Int(len)) { commentBuffer in
+                try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: nil, filename: nil, filename_size: 0, extrafield: nil, extrafield_size: 0, comment: commentBuffer, comment_size: len))
+            }
+        }
+    }
+
+    /// Returns the data for the current entry
+    public var currentEntryData: Data? {
+        get throws {
+            let fileInfo = try self.currentEntryInfo
+            let len = zip_UInt32(fileInfo.uncompressed_size)
+            if len == zip_UInt32(0) {
+                return nil
+            }
+
+            try check(minizip.unzOpenCurrentFile(file: file))
+            defer { try? check(minizip.unzCloseCurrentFile(file: file)) }
+            return withDataPointer(size: Int(len)) { buf in
+                minizip.unzReadCurrentFile(file: file, buf: buf, len: len)
+            }
+        }
+    }
 }
 
+
+#if SKIP
+typealias DataPointer = com.sun.jna.Memory
+#else
+typealias DataPointer = UnsafeMutableRawPointer
+#endif
+
+/// Allocates the given `size` of memory and then invokes the block with the pointer, then returns the contents of the null-terminated string
+func withDataPointer(size: Int, block: (DataPointer) throws -> Int32) rethrows -> Data? {
+    #if SKIP
+    let dataPtr = DataPointer(Int64(size))
+    dataPtr.clear()
+    //defer { dataPtr.close() } // calls dispose() to deallocate
+    #else
+    let dataPtr = DataPointer.allocate(byteCount: Int(size), alignment: MemoryLayout<UInt8>.alignment)
+    //defer { dataPtr.deallocate() } // we deallocate lazily from the Data
+    #endif
+
+    // TODO: keep reading until read == size
+    let read: Int32 = try block(dataPtr)
+
+    #if SKIP
+    let data = dataPtr.getByteArray(0, read)
+    return Data(platformValue: data)
+    #else
+    let data = Data(bytesNoCopy: dataPtr, count: Int(read), deallocator: .custom({ (pointer, _) in
+        pointer.deallocate()
+    }))
+    return data
+    #endif
+}
+
+
+#if SKIP
+typealias StringMemory = com.sun.jna.Memory
+#else
+typealias StringMemory = UnsafeMutablePointer<CChar>
+#endif
+
+/// Allocates the given `size` of memory and then invokes the block with the pointer, then returns the contents of the null-terminated string
+func withStringPointer(size: Int, block: (StringMemory) throws -> Void) rethrows -> String? {
+    #if SKIP
+    // TODO: to mimic UnsafeMutablePointer<CChar>.allocate() we would need to create wrapper structs in SkipFFI (rather than raw typealiases)
+    let stringMemory = StringMemory(Int64(size + 1))
+    stringMemory.clear()
+    defer { stringMemory.close() } // calls dispose() to deallocate
+    #else
+    let stringMemory = StringMemory.allocate(capacity: Int(size + 1))
+    defer { stringMemory.deallocate() }
+    #endif
+
+    try block(stringMemory)
+
+    #if SKIP
+    return stringMemory.getString(0)
+    #else
+    let entryName = String(cString: stringMemory)
+    return entryName
+    #endif
+}
 
 /// A zip file writer
 public final class ZipWriter {
@@ -97,11 +214,22 @@ public final class ZipWriter {
     }
 }
 
-public struct ZipError : Error {
+public struct ZipError : Error, LocalizedError {
     public let code: Int32
 
     public init(code: Int32) {
         self.code = code
+    }
+
+    public var errorDescription: String? {
+        switch self.code {
+        case -102: return "UNZ_PARAMERROR"
+        case -103: return "UNZ_BADZIPFILE"
+        case -104: return "UNZ_INTERNALERROR"
+        case -105: return "UNZ_CRCERROR"
+        case -106: return "UNZ_BADPASSWORD"
+        default: return "Unknown error (\(self.code))"
+        }
     }
 }
 
