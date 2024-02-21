@@ -3,11 +3,8 @@
 // This is free software: you can redistribute and/or modify it
 // under the terms of the GNU Lesser General Public License 3.0
 // as published by the Free Software Foundation https://fsf.org
-import Swift
 import Foundation
-#if SKIP
 import SkipFFI
-#endif
 
 private let zlib = ZlibLibrary()
 private let minizip = MiniZipLibrary()
@@ -74,12 +71,12 @@ public final class ZipReader {
     public var currentEntryName: String? {
         get throws {
             let fileInfo = try self.currentEntryInfo
-            let len = zip_UInt(fileInfo.size_filename)
-            if len == zip_UInt(0) {
+            let len = FFIUInt(fileInfo.size_filename)
+            if len == FFIUInt(0) {
                 return nil
             }
 
-            return try withStringPointer(size: Int(len)) { nameBuffer in
+            return try withFFIStringPointer(size: Int(len)) { nameBuffer in
                 try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: nil, filename: nameBuffer, filename_size: len, extrafield: nil, extrafield_size: 0, comment: nil, comment_size: 0))
             }
         }
@@ -89,11 +86,11 @@ public final class ZipReader {
     public var currentEntryComment: String? {
         get throws {
             let fileInfo = try self.currentEntryInfo
-            let len = zip_UInt(fileInfo.size_file_comment)
-            if len == zip_UInt(0) {
+            let len = FFIUInt(fileInfo.size_file_comment)
+            if len == FFIUInt(0) {
                 return nil
             }
-            return try withStringPointer(size: Int(len)) { commentBuffer in
+            return try withFFIStringPointer(size: Int(len)) { commentBuffer in
                 try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: nil, filename: nil, filename_size: 0, extrafield: nil, extrafield_size: 0, comment: commentBuffer, comment_size: len))
             }
         }
@@ -103,80 +100,20 @@ public final class ZipReader {
     public var currentEntryData: Data? {
         get throws {
             let fileInfo = try self.currentEntryInfo
-            let len = zip_UInt32(fileInfo.uncompressed_size)
-            if len == zip_UInt32(0) {
+            let len = FFIUInt32(fileInfo.uncompressed_size)
+            if len == FFIUInt32(0) {
                 return nil
             }
 
             try check(minizip.unzOpenCurrentFile(file: file))
             defer { try? check(minizip.unzCloseCurrentFile(file: file)) }
-            return withDataPointer(size: Int(len)) { buf in
+            return withFFIDataPointer(size: Int(len)) { buf in
                 minizip.unzReadCurrentFile(file: file, buf: buf, len: len)
             }
         }
     }
 }
 
-
-#if SKIP
-typealias DataPointer = com.sun.jna.Memory
-#else
-typealias DataPointer = UnsafeMutableRawPointer
-#endif
-
-/// Allocates the given `size` of memory and then invokes the block with the pointer, then returns the contents of the null-terminated string
-func withDataPointer(size: Int, block: (DataPointer) throws -> Int32) rethrows -> Data? {
-    #if SKIP
-    let dataPtr = DataPointer(Int64(size))
-    dataPtr.clear()
-    //defer { dataPtr.close() } // calls dispose() to deallocate
-    #else
-    let dataPtr = DataPointer.allocate(byteCount: Int(size), alignment: MemoryLayout<UInt8>.alignment)
-    //defer { dataPtr.deallocate() } // we deallocate lazily from the Data
-    #endif
-
-    // TODO: keep reading until read == size
-    let read: Int32 = try block(dataPtr)
-
-    #if SKIP
-    let data = dataPtr.getByteArray(0, read)
-    return Data(platformValue: data)
-    #else
-    let data = Data(bytesNoCopy: dataPtr, count: Int(read), deallocator: .custom({ (pointer, _) in
-        pointer.deallocate()
-    }))
-    return data
-    #endif
-}
-
-
-#if SKIP
-typealias StringMemory = com.sun.jna.Memory
-#else
-typealias StringMemory = UnsafeMutablePointer<CChar>
-#endif
-
-/// Allocates the given `size` of memory and then invokes the block with the pointer, then returns the contents of the null-terminated string
-func withStringPointer(size: Int, block: (StringMemory) throws -> Void) rethrows -> String? {
-    #if SKIP
-    // TODO: to mimic UnsafeMutablePointer<CChar>.allocate() we would need to create wrapper structs in SkipFFI (rather than raw typealiases)
-    let stringMemory = StringMemory(Int64(size + 1))
-    stringMemory.clear()
-    defer { stringMemory.close() } // calls dispose() to deallocate
-    #else
-    let stringMemory = StringMemory.allocate(capacity: Int(size + 1))
-    defer { stringMemory.deallocate() }
-    #endif
-
-    try block(stringMemory)
-
-    #if SKIP
-    return stringMemory.getString(0)
-    #else
-    let entryName = String(cString: stringMemory)
-    return entryName
-    #endif
-}
 
 /// A zip file writer
 public final class ZipWriter {
@@ -201,9 +138,9 @@ public final class ZipWriter {
     ///   - compression: the compression mode
     ///   - level: the compression level to use
     public func add(path: String, data: Data, comment: String? = nil, compression: Int?) throws {
-        try check(minizip.zipOpenNewFileInZip_64(file: file, filename: path, zipfi: nil, extrafield_local: nil, size_extrafield_local: zip_UInt16(0), extrafield_global: nil, size_extrafield_global: zip_UInt16(0), comment: comment, compression_method: compression == nil ? CompressionMethod.store.rawValue : CompressionMethod.deflate.rawValue, level: Int32(compression ?? 0), zip64: Int32(1)))
+        try check(minizip.zipOpenNewFileInZip_64(file: file, filename: path, zipfi: nil, extrafield_local: nil, size_extrafield_local: FFIUInt16(0), extrafield_global: nil, size_extrafield_global: FFIUInt16(0), comment: comment, compression_method: compression == nil ? CompressionMethod.store.rawValue : CompressionMethod.deflate.rawValue, level: Int32(compression ?? 0), zip64: Int32(1)))
 
-        let len = zip_UInt32(data.count)
+        let len = FFIUInt32(data.count)
 
         let success = data.withUnsafeBytes { buf in
             minizip.zipWriteInFileInZip(file: file, buf: buf.baseAddress!, len: len)
