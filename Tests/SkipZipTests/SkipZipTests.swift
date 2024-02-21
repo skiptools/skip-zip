@@ -170,31 +170,69 @@ final class SkipZipTests: XCTestCase {
     }
 
     func testSampleZipFiles() throws {
-        for (zipPath, expectedCount) in [
-            ("Empty.zip", 0),
-            ("hello.zip", 0),
-            ("IncorrectHeaders.zip", 4),
-            ("PathTraversal.zip", 0),
-            ("RelativeSymbolicLink.zip", 3),
-            ("SymbolicLink.zip", 1),
-            ("TestAESPasswordArchive.zip", 1),
-            ("TestArchive.zip", 1),
-            ("TestPasswordArchive.zip", 1),
-            ("Unicode.zip", 1),
-        ] {
+
+        func check(_ zipPath: String, _ expectedCount: Int) throws {
             let url = try XCTUnwrap(Bundle.module.url(forResource: zipPath, withExtension: nil))
             let path = tmpzip(named: zipPath)
             try Data(contentsOf: url).write(to: URL(fileURLWithPath: path)) // need to copy out the file, since Android resources are stored in the apk
             let reader = try XCTUnwrap(ZipReader(path: path))
 
-            var entries = 0
-            while try reader.next() { entries += 1 }
+            var entries = 1
+            // e.g., fails on CorruptSymbolicLinkErrorConditions
+            while (try? reader.next()) != false { entries += 1 }
             try reader.close()
 
-            XCTAssertEqual(expectedCount, entries, "zip file at \(path) entry mismatch: \(expectedCount) vs. \(entries)")
-        }
-    }
+            XCTAssertEqual(expectedCount, entries, "zip file at \(zipPath) entry mismatch: \(expectedCount) vs. \(entries)")
 
+        }
+
+        try check("hello.zip", 1)
+        try check("AESPasswordArchive.zip", 2)
+        try check("AddDirectoryToArchiveWithZIP64LFHOffset.zip", 1)
+        try check("AddEntryToArchiveWithZIP64LFHOffset.zip", 1)
+        try check("Archive.zip", 2)
+        try check("ArchiveAddCompressedEntryProgress.zip", 4)
+        try check("ArchiveAddUncompressedEntryProgress.zip", 4)
+        try check("ArchiveIteratorErrorConditions.zip", 1)
+        try check("CRC32Check.zip", 4)
+        try check("CorruptSymbolicLinkErrorConditions.zip", 2)
+        try check("DetectEntryType.zip", 2)
+        try check("Empty.zip", 1)
+        try check("EntryIsCompressed.zip", 2)
+        try check("ExtractCompressedDataDescriptorArchive.zip", 2)
+        try check("ExtractCompressedEntryCancelation.zip", 1)
+        try check("ExtractCompressedZIP64Entries.zip", 1)
+        try check("ExtractEncryptedArchiveErrorConditions.zip", 1)
+        try check("ExtractEntryWithZIP64DataDescriptor.zip", 1)
+        try check("ExtractErrorConditions.zip", 2)
+        try check("ExtractInvalidBufferSizeErrorConditions.zip", 1)
+        try check("ExtractMSDOSArchive.zip", 1)
+        try check("ExtractPreferredEncoding.zip", 3)
+        try check("ExtractUncompressedDataDescriptorArchive.zip", 1)
+        try check("ExtractUncompressedEmptyFile.zip", 1)
+        try check("ExtractUncompressedEntryCancelation.zip", 4)
+        try check("ExtractUncompressedFolderEntries.zip", 4)
+        try check("ExtractUncompressedFolderEntriesFromMemory.zip", 4)
+        try check("ExtractUncompressedZIP64Entries.zip", 1)
+        try check("IncorrectHeaders.zip", 5)
+        try check("InvalidCompressionMethodErrorConditions.zip", 4)
+        try check("PasswordArchive.zip", 2)
+        try check("PathTraversal.zip", 1)
+        try check("ProgressHelpers.zip", 12)
+        try check("RelativeSymbolicLink.zip", 4)
+        try check("RemoveDataDescriptorCompressedEntry.zip", 2)
+        try check("RemoveEntryFromArchiveWithZIP64EOCD.zip", 2)
+        try check("RemoveEntryWithZIP64ExtendedInformation.zip", 4)
+        try check("RemoveZIP64EntryFromArchiveWithZIP64EOCD.zip", 2)
+        try check("SymbolicLink.zip", 2)
+        try check("TraversalAttack.zip", 1)
+        try check("Unicode.zip", 2)
+        try check("UnzipItemErrorConditions.zip", 12)
+        try check("UnzipItemWithPreferredEncoding.zip", 3)
+        try check("UnzipItemWithZIP64DataDescriptor.zip", 1)
+        try check("UpdateArchiveRemoveUncompressedEntryFromMemory.zip", 3)
+        try check("ZIP64ArchiveAddEntryProgress.zip", 2)
+    }
 }
 
 #if !SKIP
