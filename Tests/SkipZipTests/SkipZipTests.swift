@@ -13,12 +13,6 @@ let logger: Logger = Logger(subsystem: "SkipZip", category: "Tests")
 
 final class SkipZipTests: XCTestCase {
     func testArchive() throws {
-        func tmpzip() -> String {
-            let path = URL.temporaryDirectory.path + "/SkipZipTests-\(UUID().uuidString).zip"
-            logger.log("testing zip archive at: \(path)")
-            return path
-        }
-
         do {
             let path = tmpzip()
 
@@ -168,6 +162,39 @@ final class SkipZipTests: XCTestCase {
     func fileSize(_ path: String) throws -> Int64? {
         try FileManager.default.attributesOfItem(atPath: path)[FileAttributeKey.size] as? Int64
     }
+
+    func tmpzip(named: String? = nil) -> String {
+        let path = URL.temporaryDirectory.path + "/" + (named ?? "SkipZipTests-\(UUID().uuidString).zip")
+        logger.log("testing zip archive at: \(path)")
+        return path
+    }
+
+    func testSampleZipFiles() throws {
+        for (zipPath, expectedCount) in [
+            ("Empty.zip", 0),
+            ("hello.zip", 0),
+            ("IncorrectHeaders.zip", 4),
+            ("PathTraversal.zip", 0),
+            ("RelativeSymbolicLink.zip", 3),
+            ("SymbolicLink.zip", 1),
+            ("TestAESPasswordArchive.zip", 1),
+            ("TestArchive.zip", 1),
+            ("TestPasswordArchive.zip", 1),
+            ("Unicode.zip", 1),
+        ] {
+            let url = try XCTUnwrap(Bundle.module.url(forResource: zipPath, withExtension: nil))
+            let path = tmpzip(named: zipPath)
+            try Data(contentsOf: url).write(to: URL(fileURLWithPath: path)) // need to copy out the file, since Android resources are stored in the apk
+            let reader = try XCTUnwrap(ZipReader(path: path))
+
+            var entries = 0
+            while try reader.next() { entries += 1 }
+            try reader.close()
+
+            XCTAssertEqual(expectedCount, entries, "zip file at \(path) entry mismatch: \(expectedCount) vs. \(entries)")
+        }
+    }
+
 }
 
 #if !SKIP

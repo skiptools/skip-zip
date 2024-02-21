@@ -20,12 +20,6 @@ build:
     - block: 'android'
       export: false
       contents:
-        - 'namespace = group as String'
-        - 'compileSdk = libs.versions.android.sdk.compile.get().toInt()'
-        - block: 'defaultConfig'
-          contents:
-            - 'minSdk = libs.versions.android.sdk.min.get().toInt()'
-
         - block: 'externalNativeBuild'
           contents:
             - block: 'cmake'

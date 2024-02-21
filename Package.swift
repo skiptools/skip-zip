@@ -23,7 +23,8 @@ let package = Package(
         .testTarget(name: "SkipZipTests", dependencies: [
             "SkipZip",
             .product(name: "SkipTest", package: "skip")
-        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        ], resources: [.process("Resources")],
+            plugins: [.plugin(name: "skipstone", package: "skip")]),
         .target(name: "MiniZip", dependencies: [
             .product(name: "SkipUnit", package: "skip-unit")
         ], sources: ["src"], cSettings: [
