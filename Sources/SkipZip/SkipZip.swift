@@ -50,7 +50,17 @@ public final class ZipReader {
         minizip.unzGetOffset64(file: file)
     }
 
-    private var currentEntryInfo: unz_file_info64 {
+    private var currentEntryInfo: ZipEntryInfo {
+        get throws {
+            if is32Bit {
+                return try currentEntryInfo32
+            } else {
+                return try currentEntryInfo64
+            }
+        }
+    }
+
+    private var currentEntryInfo64: unz_file_info64 {
         get throws {
             #if SKIP
             let fileInfoPtr = unz_file_info64()
@@ -67,10 +77,28 @@ public final class ZipReader {
         }
     }
 
+    private var currentEntryInfo32: unz_file_info {
+        get throws {
+            #if SKIP
+            let fileInfoPtr = unz_file_info()
+            #else
+            let fileInfoPtr = unz_file_info_ptr()
+            #endif
+            try check(minizip.unzGetCurrentFileInfo(file: file, pfile_info: fileInfoPtr, filename: nil, filename_size: 0, extrafield: nil, extrafield_size: 0, comment: nil, comment_size: 0))
+            #if SKIP
+            fileInfoPtr.read()
+            return fileInfoPtr
+            #else
+            return fileInfoPtr.pointee
+            #endif
+        }
+    }
+
+
     /// Returns the CRC32 for the current entry
     public var currentEntryCRC32: UInt32 {
         get throws {
-            try UInt32(self.currentEntryInfo.crc)
+            try currentEntryInfo.crc32
         }
     }
 
@@ -78,13 +106,15 @@ public final class ZipReader {
     public var currentEntryName: String? {
         get throws {
             let fileInfo = try self.currentEntryInfo
-            let len = FFIUInt(fileInfo.size_filename)
-            if len == FFIUInt(0) {
+            let len = fileInfo.filenameSize
+            if len == UInt16(0) {
                 return nil
             }
 
             return try withFFIStringPointer(size: Int(len)) { nameBuffer in
-                try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: nil, filename: nameBuffer, filename_size: len, extrafield: nil, extrafield_size: 0, comment: nil, comment_size: 0))
+                is64Bit 
+                ? try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: nil, filename: nameBuffer, filename_size: FFIUInt(len), extrafield: nil, extrafield_size: 0, comment: nil, comment_size: 0))
+                : try check(minizip.unzGetCurrentFileInfo(file: file, pfile_info: nil, filename: nameBuffer, filename_size: FFIUInt(len), extrafield: nil, extrafield_size: 0, comment: nil, comment_size: 0))
             }
         }
     }
@@ -93,12 +123,14 @@ public final class ZipReader {
     public var currentEntryComment: String? {
         get throws {
             let fileInfo = try self.currentEntryInfo
-            let len = FFIUInt(fileInfo.size_file_comment)
-            if len == FFIUInt(0) {
+            let len = fileInfo.commentSize
+            if len == UInt16(0) {
                 return nil
             }
             return try withFFIStringPointer(size: Int(len)) { commentBuffer in
-                try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: nil, filename: nil, filename_size: 0, extrafield: nil, extrafield_size: 0, comment: commentBuffer, comment_size: len))
+                is64Bit
+                ? try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: nil, filename: nil, filename_size: 0, extrafield: nil, extrafield_size: 0, comment: commentBuffer, comment_size: FFIUInt(len)))
+                : try check(minizip.unzGetCurrentFileInfo(file: file, pfile_info: nil, filename: nil, filename_size: 0, extrafield: nil, extrafield_size: 0, comment: commentBuffer, comment_size: FFIUInt(len)))
             }
         }
     }
@@ -107,7 +139,11 @@ public final class ZipReader {
     public var currentEntryData: Data? {
         get throws {
             let fileInfo = try self.currentEntryInfo
-            let len = FFIUInt32(fileInfo.uncompressed_size)
+            if fileInfo.uncompressedSize > UInt32.max {
+                throw ZipError(code: -2) // too large to fit in a single Data
+            }
+
+            let len = FFIUInt32(fileInfo.uncompressedSize)
             if len == FFIUInt32(0) {
                 return nil
             }
