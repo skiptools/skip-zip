@@ -180,6 +180,14 @@ internal final class MiniZipLibrary {
         MiniZip.unzGoToNextFile(file)
     }
 
+    public func unzGetOffsetArch(file: unzFile) -> Int64 {
+        is64Bit ? unzGetOffset64(file: file) : Int64(unzGetOffset(file: file))
+    }
+
+    /* SKIP EXTERN */ public func unzGetOffset(file: unzFile) -> FFIUInt {
+        MiniZip.unzGetOffset(file)
+    }
+
     /* SKIP EXTERN */ public func unzGetOffset64(file: unzFile) -> Int64 {
         MiniZip.unzGetOffset64(file)
     }
@@ -204,12 +212,28 @@ internal final class MiniZipLibrary {
         MiniZip.unzCloseCurrentFile(file)
     }
 
+    public func zipOpenArch(path: String, append: Int32) -> zipFile? {
+        is64Bit ? zipOpen64(path: path, append: append) : zipOpen(path: path, append: append)
+    }
+
     /* SKIP EXTERN */ public func zipOpen64(path: String, append: Int32) -> zipFile? {
         MiniZip.zipOpen64(path, append)
     }
 
+    /* SKIP EXTERN */ public func zipOpen(path: String, append: Int32) -> zipFile? {
+        MiniZip.zipOpen(path, append)
+    }
+
+    public func zipCloseArch(file: zipFile, comment: String?) -> Int32 {
+        is64Bit ? zipClose_64(file: file, comment: comment) : zipClose(file: file, comment: comment)
+    }
+
     /* SKIP EXTERN */ public func zipClose_64(file: zipFile, comment: String?) -> Int32 {
         MiniZip.zipClose_64(file, comment)
+    }
+
+    /* SKIP EXTERN */ public func zipClose(file: zipFile, comment: String?) -> Int32 {
+        MiniZip.zipClose(file, comment)
     }
 
     /* SKIP EXTERN */ public func zipOpenNewFileInZip_64(file: zipFile, filename: String, zipfi: UnsafePointer<zip_fileinfo>?, extrafield_local: UnsafeRawPointer?, size_extrafield_local: FFIUInt16, extrafield_global: UnsafeRawPointer?, size_extrafield_global: FFIUInt16, comment: String?, compression_method: Int32, level: Int32, zip64: Int32) -> Int32 {
@@ -220,7 +244,15 @@ internal final class MiniZipLibrary {
         MiniZip.zipWriteInFileInZip(file, buf, len)
     }
 
+    public func zipCloseFileInZipArch(file: zipFile) -> Int32 {
+        is64Bit ? zipCloseFileInZip64(file: file) : zipCloseFileInZip(file: file)
+    }
+
     /* SKIP EXTERN */ public func zipCloseFileInZip64(file: zipFile) -> Int32 {
         MiniZip.zipCloseFileInZip64(file)
+    }
+
+    /* SKIP EXTERN */ public func zipCloseFileInZip(file: zipFile) -> Int32 {
+        MiniZip.zipCloseFileInZip(file)
     }
 }

@@ -13,10 +13,6 @@ let logger: Logger = Logger(subsystem: "SkipZip", category: "Tests")
 
 final class SkipZipTests: XCTestCase {
     func testArchive() throws {
-        if isAndroid && is32Bit {
-            throw XCTSkip("FIXME: crashes on Android 32-bit emulators") // probably related to unzGetCurrentFileInfo64/unzGetCurrentFileInfo checking
-        }
-
         do {
             let path = tmpzip()
 

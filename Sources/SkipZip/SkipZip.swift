@@ -47,7 +47,7 @@ public final class ZipReader {
     }
 
     public var currentOffset: Int64 {
-        minizip.unzGetOffset64(file: file)
+        minizip.unzGetOffsetArch(file: file)
     }
 
     private var currentEntryInfo: ZipEntryInfo {
@@ -163,14 +163,14 @@ public final class ZipWriter {
     let file: zipFile
 
     public init?(path: String, append: Bool) {
-        guard let file = minizip.zipOpen64(path: path, append: append ? 1 : 0) else {
+        guard let file = minizip.zipOpenArch(path: path, append: append ? 1 : 0) else {
             return nil
         }
         self.file = file
     }
     
     public func close() throws {
-        try check(minizip.zipClose_64(file: file, comment: nil))
+        try check(minizip.zipCloseArch(file: file, comment: nil))
     }
 
     /// Adds the given data to an open zip file with the specified compression method
@@ -189,7 +189,7 @@ public final class ZipWriter {
             minizip.zipWriteInFileInZip(file: file, buf: buf.baseAddress!, len: len)
         }
 
-        try check(minizip.zipCloseFileInZip64(file: file))
+        try check(minizip.zipCloseFileInZipArch(file: file))
         try check(success) // check the result code after we close the internal file
     }
 }
