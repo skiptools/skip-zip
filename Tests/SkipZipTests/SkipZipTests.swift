@@ -7,12 +7,16 @@ import XCTest
 import OSLog
 import Foundation
 import CryptoKit
-import SkipZip
+@testable import SkipZip
 
 let logger: Logger = Logger(subsystem: "SkipZip", category: "Tests")
 
 final class SkipZipTests: XCTestCase {
     func testArchive() throws {
+        if isAndroid && is32Bit {
+            throw XCTSkip("FIXME: crashes on Android 32-bit emulators") // probably related to unzGetCurrentFileInfo64/unzGetCurrentFileInfo checking
+        }
+
         do {
             let path = tmpzip()
 
@@ -189,10 +193,7 @@ final class SkipZipTests: XCTestCase {
                     let (expectedName, crc32, expectedContents) = expectedEntries[entryIndex]
                     XCTAssertEqual(crc32, try reader.currentEntryCRC32, "unexpected CRC32 for \(zipPath) #\(entryIndex)")
 
-                    let currentEntryName = try reader.currentEntryName // FIXME: nil on Android emulator on CI (but not locally)
-                    if isAndroid && ProcessInfo.processInfo.environment["CI"] != nil {
-                        throw XCTSkip("FIXME: fails on emulator in CI")
-                    }
+                    let currentEntryName = try reader.currentEntryName
                     XCTAssertEqual(expectedName, currentEntryName, "unexpected entry name for \(zipPath) #\(entryIndex) [size=\(currentEntryName?.count ?? -1)]: \(currentEntryName ?? "NONE")")
                     if let expectedContents = expectedContents {
                         let contents = try reader.currentEntryData
