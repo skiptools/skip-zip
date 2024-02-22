@@ -27,14 +27,14 @@ typealias unzFile = OpaquePointer
 typealias zip_fileinfo = OpaquePointer
 typealias unz_file_info64_ptr = unz_file_info64
 
-// SKIP INSERT: @com.sun.jna.Structure.FieldOrder("version", "version_needed", "flag", "compression_method", "dos_date", "tmu_date", "crc", "compressed_size", "uncompressed_size", "size_filename", "size_file_extra", "size_file_comment", "disk_num_start", "internal_fa", "external_fa", "disk_offset", "size_file_extra_internal")
+// SKIP INSERT: @com.sun.jna.Structure.FieldOrder("version", "version_needed", "flag", "compression_method", "dos_date", /* "tmu_date", */ "crc", "compressed_size", "uncompressed_size", "size_filename", "size_file_extra", "size_file_comment", "disk_num_start", "internal_fa", "external_fa", "disk_offset", "size_file_extra_internal")
 public final class unz_file_info64 : SkipFFIStructure {
     /* SKIP INSERT: @JvmField */ public var version: FFIUInt16 = 0 /* version made by 2 bytes */
     /* SKIP INSERT: @JvmField */ public var version_needed: FFIUInt16 = 0 /* version needed to extract 2 bytes */
     /* SKIP INSERT: @JvmField */ public var flag: FFIUInt16 = 0 /* general purpose bit flag 2 bytes */
     /* SKIP INSERT: @JvmField */ public var compression_method: FFIUInt16 = 0 /* compression method 2 bytes */
     /* SKIP INSERT: @JvmField */ public var dos_date: FFIUInt32 = 0 /* last mod file date in Dos fmt 4 bytes */
-    /* SKIP INSERT: @JvmField */ public var tmu_date: tm = tm()
+    ///* SKIP INSERT: @JvmField */ public var tmu_date: tm = tm() // SkipZip: removed because size is different on different Android versions
     /* SKIP INSERT: @JvmField */ public var crc: FFIUInt32 = 0 /* crc-32 4 bytes */
     /* SKIP INSERT: @JvmField */ public var compressed_size: FFIUInt64 = 0 /* compressed size 8 bytes */
     /* SKIP INSERT: @JvmField */ public var uncompressed_size: FFIUInt64 = 0 /* uncompressed size 8 bytes */
