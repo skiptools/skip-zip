@@ -98,6 +98,7 @@ public final class tm : SkipFFIStructure {
     /* SKIP INSERT: @JvmField */ public var tm_wday: Int32 = Int32(0) /* days since Sunday [0-6] */
     /* SKIP INSERT: @JvmField */ public var tm_yday: Int32 = Int32(0) /* days since January 1 [0-365] */
     /* SKIP INSERT: @JvmField */ public var tm_isdst: Int32 = Int32(0) /* Daylight Savings Time flag */
+    // FIXME: older versions of Android seem to be missing these fields, which throws off the placement of the subsquent fields - C generally handles this scenario with a `HAVE_TM_GMTOFF` flag, but since we map it to a struct here, we can't conditionally exclude it
     /* SKIP INSERT: @JvmField */ public var tm_gmtoff: Int64 = Int64(0) /* offset from UTC in seconds */
     /* SKIP INSERT: @JvmField */ public var tm_zone: OpaquePointer? = nil /* timezone abbreviation */
 }

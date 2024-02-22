@@ -67,6 +67,13 @@ public final class ZipReader {
         }
     }
 
+    /// Returns the CRC32 for the current entry
+    public var currentEntryCRC32: UInt32 {
+        get throws {
+            try UInt32(self.currentEntryInfo.crc)
+        }
+    }
+
     /// Returns the name of the current entry
     public var currentEntryName: String? {
         get throws {

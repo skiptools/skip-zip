@@ -176,7 +176,7 @@ final class SkipZipTests: XCTestCase {
 
     func testSampleZipFiles() throws {
 
-        func check(_ zipPath: String, _ expectedCount: Int, _ expectedEntries: [(name: String, contents: Data?)]? = nil) throws {
+        func check(_ zipPath: String, _ expectedCount: Int, _ expectedEntries: [(name: String, crc32: UInt32, contents: Data?)]? = nil) throws {
             let url = try XCTUnwrap(Bundle.module.url(forResource: zipPath, withExtension: nil))
             let path = tmpzip(named: zipPath)
             try Data(contentsOf: url).write(to: URL(fileURLWithPath: path)) // need to copy out the file, since Android resources are stored in the apk
@@ -186,7 +186,9 @@ final class SkipZipTests: XCTestCase {
             // e.g., fails on CorruptSymbolicLinkErrorConditions
             while true {
                 if let expectedEntries = expectedEntries, expectedEntries.count > entryIndex {
-                    let (expectedName, expectedContents) = expectedEntries[entryIndex]
+                    let (expectedName, crc32, expectedContents) = expectedEntries[entryIndex]
+                    XCTAssertEqual(crc32, try reader.currentEntryCRC32, "unexpected CRC32 for \(zipPath) #\(entryIndex)")
+
                     let currentEntryName = try reader.currentEntryName // FIXME: nil on Android emulator on CI (but not locally)
                     if isAndroid && ProcessInfo.processInfo.environment["CI"] != nil {
                         throw XCTSkip("FIXME: fails on emulator in CI")
@@ -212,14 +214,14 @@ final class SkipZipTests: XCTestCase {
         }
 
         //try check("Empty.zip", 1, [("", nil)]) // TODO: handle empty archives
-        try check("hello.zip", 1, [("hello", "hello".data(using: .utf8))])
-        try check("AESPasswordArchive.zip", 2, [("README.md", nil), ("LICENSE.txt", nil)])
-        try check("AddDirectoryToArchiveWithZIP64LFHOffset.zip", 1, [("data.random", nil)])
-        try check("AddEntryToArchiveWithZIP64LFHOffset.zip", 1, [("data.random", nil)])
-        try check("Archive.zip", 2, [("LICENSE", nil), ("Readme.markdown", nil)])
-        try check("ExtractPreferredEncoding.zip", 3, [("data/", nil), ("data/pic👨‍👩‍👧‍👦🎂.jpg", nil), ("data/Benoît.txt", nil)])
+        try check("hello.zip", 1, [("hello", UInt32(907060870), "hello".data(using: .utf8))])
+        try check("AESPasswordArchive.zip", 2, [("README.md", UInt32(2785006521), nil), ("LICENSE.txt", UInt32(1717969951), nil)])
+        try check("AddDirectoryToArchiveWithZIP64LFHOffset.zip", 1, [("data.random", UInt32(1611947580), nil)])
+        try check("AddEntryToArchiveWithZIP64LFHOffset.zip", 1, [("data.random", UInt32(1611947580), nil)])
+        try check("Archive.zip", 2, [("LICENSE", UInt32(3911215856), nil), ("Readme.markdown", UInt32(3219512633), nil)])
+        try check("ExtractPreferredEncoding.zip", 3, [("data/", UInt32(0), nil), ("data/pic👨‍👩‍👧‍👦🎂.jpg", UInt32(0), nil), ("data/Benoît.txt", UInt32(0), nil)])
 
-        try check("DetectEntryType.zip", 2, [("META-INF/", nil), ("META-INF/container.xml", (("""
+        try check("DetectEntryType.zip", 2, [("META-INF/", UInt32(0), nil), ("META-INF/container.xml", UInt32(1997989934), (("""
             <?xml version="1.0"?>
             <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
                <rootfiles>
@@ -229,47 +231,47 @@ final class SkipZipTests: XCTestCase {
 
             """) + "    ").data(using: .utf8)!)])
 
-        try check("ArchiveAddCompressedEntryProgress.zip", 4, [(".DS_Store", nil), ("dir/", nil), ("original", nil), ("symlink", nil)])
-        try check("ArchiveAddUncompressedEntryProgress.zip", 4, [(".DS_Store", nil), ("dir/", nil), ("original", nil), ("symlink", nil)])
-        try check("ArchiveIteratorErrorConditions.zip", 1, [("test.txt", nil)])
-        try check("CRC32Check.zip", 4, [(".DS_Store", nil), ("dir/", nil), ("original", "content\n".data(using: .utf8)!), ("symlink", "original".data(using: .utf8)!)])
+        try check("ArchiveAddCompressedEntryProgress.zip", 4, [(".DS_Store", UInt32(3825983351), nil), ("dir/", UInt32(0), nil), ("original", UInt32(2636372207), nil), ("symlink", UInt32(796029061), nil)])
+        try check("ArchiveAddUncompressedEntryProgress.zip", 4, [(".DS_Store", UInt32(3825983351), nil), ("dir/", UInt32(0), nil), ("original", UInt32(2636372207), nil), ("symlink", UInt32(796029061), nil)])
+        try check("ArchiveIteratorErrorConditions.zip", 1, [("test.txt", UInt32(3632233996), nil)])
+        try check("CRC32Check.zip", 4, [(".DS_Store", UInt32(3825983351), nil), ("dir/", UInt32(0), nil), ("original", UInt32(1818845542), "content\n".data(using: .utf8)!), ("symlink", UInt32(796029061), "original".data(using: .utf8)!)])
 
-        try check("ExtractUncompressedDataDescriptorArchive.zip", 1, [("empty.txt", nil)])
-        try check("ExtractUncompressedEmptyFile.zip", 1, [("empty.txt", nil)])
-        try check("ExtractUncompressedEntryCancelation.zip", 4, [(".DS_Store", nil), ("dir/", nil), ("original", nil), ("symlink", nil)])
-        try check("ExtractUncompressedFolderEntries.zip", 4, [(".DS_Store", nil), ("dir/", nil), ("original", nil), ("symlink", nil)])
-        try check("ExtractUncompressedFolderEntriesFromMemory.zip", 4, [(".DS_Store", nil), ("dir/", nil), ("original", nil), ("symlink", nil)])
-        try check("ExtractUncompressedZIP64Entries.zip", 1, [("testExtractUncompressedZIP64Entries.png", nil)])
-        try check("EntryIsCompressed.zip", 2, [("uncompressed", "This is just some test data that might be compressed or not".data(using: .utf8)!), ("compressed", "This is just some test data that might be compressed or not".data(using: .utf8)!)])
-        try check("ExtractCompressedDataDescriptorArchive.zip", 2, [("-", nil), ("second.txt", "second".data(using: .utf8)!)])
-        try check("ExtractCompressedEntryCancelation.zip", 1, [("random", nil)])
-        try check("ExtractCompressedZIP64Entries.zip", 1, [("testExtractCompressedZIP64Entries.png", nil)])
-        try check("ExtractEncryptedArchiveErrorConditions.zip", 1, [("zip64/test.txt", nil)])
-        try check("ExtractEntryWithZIP64DataDescriptor.zip", 1, [("simple.data", nil)])
-        try check("ExtractErrorConditions.zip", 2, [("testZipItem.png", nil), ("testZipItemLink", nil)])
-        try check("ExtractInvalidBufferSizeErrorConditions.zip", 1, [("text.txt", nil)])
-        try check("ExtractMSDOSArchive.zip", 1, [("test.txt", "test".data(using: .utf8)!)])
+        try check("ExtractUncompressedDataDescriptorArchive.zip", 1, [("empty.txt", UInt32(0), nil)])
+        try check("ExtractUncompressedEmptyFile.zip", 1, [("empty.txt", UInt32(0), nil)])
+        try check("ExtractUncompressedEntryCancelation.zip", 4, [(".DS_Store", UInt32(3825983351), nil), ("dir/", UInt32(0), nil), ("original", UInt32(2636372207), nil), ("symlink", UInt32(796029061), nil)])
+        try check("ExtractUncompressedFolderEntries.zip", 4, [(".DS_Store", UInt32(3825983351), nil), ("dir/", UInt32(0), nil), ("original", UInt32(2636372207), nil), ("symlink", UInt32(796029061), nil)])
+        try check("ExtractUncompressedFolderEntriesFromMemory.zip", 4, [(".DS_Store", UInt32(3825983351), nil), ("dir/", UInt32(0), nil), ("original", UInt32(2636372207), nil), ("symlink", UInt32(796029061), nil)])
+        try check("ExtractUncompressedZIP64Entries.zip", 1, [("testExtractUncompressedZIP64Entries.png", UInt32(3693714359), nil)])
+        try check("EntryIsCompressed.zip", 2, [("uncompressed", UInt32(1969483962), "This is just some test data that might be compressed or not".data(using: .utf8)!), ("compressed", UInt32(1969483962), "This is just some test data that might be compressed or not".data(using: .utf8)!)])
+        try check("ExtractCompressedDataDescriptorArchive.zip", 2, [("-", UInt32(0), nil), ("second.txt", UInt32(0), "second".data(using: .utf8)!)])
+        try check("ExtractCompressedEntryCancelation.zip", 1, [("random", UInt32(4021661486), nil)])
+        try check("ExtractCompressedZIP64Entries.zip", 1, [("testExtractCompressedZIP64Entries.png", UInt32(3693714359), nil)])
+        try check("ExtractEncryptedArchiveErrorConditions.zip", 1, [("zip64/test.txt", UInt32(3632233996), nil)])
+        try check("ExtractEntryWithZIP64DataDescriptor.zip", 1, [("simple.data", UInt32(2212294583), nil)])
+        try check("ExtractErrorConditions.zip", 2, [("testZipItem.png", UInt32(3693714359), nil), ("testZipItemLink", UInt32(526752774), nil)])
+        try check("ExtractInvalidBufferSizeErrorConditions.zip", 1, [("text.txt", UInt32(999008199), nil)])
+        try check("ExtractMSDOSArchive.zip", 1, [("test.txt", UInt32(3632233996), "test".data(using: .utf8)!)])
 
-        try check("PasswordArchive.zip", 2, [("LICENSE", nil), ("Readme.markdown", nil)])
+        try check("PasswordArchive.zip", 2, [("LICENSE", UInt32(3911215856), nil), ("Readme.markdown", UInt32(3219512633), nil)])
         try check("ProgressHelpers.zip", 12)
-        try check("RelativeSymbolicLink.zip", 4, [("symlinkedFile", nil), ("symlinkedFolder/", nil), ("symlinks/fileSymlink", nil), ("symlinks/folderSymlink", nil)])
-        try check("RemoveDataDescriptorCompressedEntry.zip", 2, [("-", nil), ("second.txt", "second".data(using: .utf8)!)])
-        try check("RemoveEntryFromArchiveWithZIP64EOCD.zip", 2, [("data1.random", nil), ("data2.random", nil)])
-        try check("RemoveEntryWithZIP64ExtendedInformation.zip", 4, [("data1.random", nil), ("data2.random", nil), ("data3.random", nil), ("data4.random", nil)])
-        try check("RemoveZIP64EntryFromArchiveWithZIP64EOCD.zip", 2, [("data1.random", nil), ("data2.random", nil)])
-        try check("SymbolicLink.zip", 2, [("SymbolicLink/", nil), ("SymbolicLink/Xcode.app", nil)])
-        try check("Unicode.zip", 2, [("Accént.txt", "Hello.\n".data(using: .utf8)!), ("Fólder/Nothing.txt", "Nothing to see here. Move along.\n".data(using: .utf8)!)])
+        try check("RelativeSymbolicLink.zip", 4, [("symlinkedFile", UInt32(2757143120), nil), ("symlinkedFolder/", UInt32(0), nil), ("symlinks/fileSymlink", UInt32(1316236439), nil), ("symlinks/folderSymlink", UInt32(1694645456), nil)])
+        try check("RemoveDataDescriptorCompressedEntry.zip", 2, [("-", UInt32(0), nil), ("second.txt", UInt32(0), "second".data(using: .utf8)!)])
+        try check("RemoveEntryFromArchiveWithZIP64EOCD.zip", 2, [("data1.random", UInt32(499354481), nil), ("data2.random", UInt32(3572886203), nil)])
+        try check("RemoveEntryWithZIP64ExtendedInformation.zip", 4, [("data1.random", UInt32(1694198006), nil), ("data2.random", UInt32(3645738927), nil), ("data3.random", UInt32(2983398580), nil), ("data4.random", UInt32(311411239), nil)])
+        try check("RemoveZIP64EntryFromArchiveWithZIP64EOCD.zip", 2, [("data1.random", UInt32(499354481), nil), ("data2.random", UInt32(3572886203), nil)])
+        try check("SymbolicLink.zip", 2, [("SymbolicLink/", UInt32(0), nil), ("SymbolicLink/Xcode.app", UInt32(3729748027), nil)])
+        try check("Unicode.zip", 2, [("Accént.txt", UInt32(937083985), "Hello.\n".data(using: .utf8)!), ("Fólder/Nothing.txt", UInt32(756475509), "Nothing to see here. Move along.\n".data(using: .utf8)!)])
         try check("UnzipItemErrorConditions.zip", 12)
-        try check("UnzipItemWithPreferredEncoding.zip", 3, [("data/", nil), ("data/pic👨‍👩‍👧‍👦🎂.jpg", nil), ("data/Benoît.txt", nil)])
-        try check("UnzipItemWithZIP64DataDescriptor.zip", 1, [("simple.data", nil)])
-        try check("UpdateArchiveRemoveUncompressedEntryFromMemory.zip", 3, [("symlink", nil), ("original", nil), ("dir/", nil)])
-        try check("ZIP64ArchiveAddEntryProgress.zip", 2, [("data1.random", nil), ("data2.random", nil)])
+        try check("UnzipItemWithPreferredEncoding.zip", 3, [("data/", UInt32(0), nil), ("data/pic👨‍👩‍👧‍👦🎂.jpg", UInt32(0), nil), ("data/Benoît.txt", UInt32(0), nil)])
+        try check("UnzipItemWithZIP64DataDescriptor.zip", 1, [("simple.data", UInt32(2212294583), nil)])
+        try check("UpdateArchiveRemoveUncompressedEntryFromMemory.zip", 3, [("symlink", UInt32(2636372207), nil), ("original", UInt32(2636372207), nil), ("dir/", UInt32(0), nil)])
+        try check("ZIP64ArchiveAddEntryProgress.zip", 2, [("data1.random", UInt32(499354481), nil), ("data2.random", UInt32(3572886203), nil)])
 
-        try check("CorruptSymbolicLinkErrorConditions.zip", 1, [("s", nil)])
-        try check("TraversalAttack.zip", 1, [("../testTraversalAttackABC/EVIL_HERE", nil)])
-        try check("PathTraversal.zip", 1, [("../../../../../../../../../../../tmp/test.txt", nil)])
-        try check("IncorrectHeaders.zip", 5, [("IncorrectHeaders/", nil), ("IncorrectHeaders/Readme.txt", nil), ("__MACOSX/", nil), ("__MACOSX/IncorrectHeaders/", nil), ("__MACOSX/IncorrectHeaders/._Readme.txt", nil)])
-        try check("InvalidCompressionMethodErrorConditions.zip", 4, [(".DS_Store", nil), ("dir/", nil), ("original", nil), ("symlink", nil)])
+        try check("CorruptSymbolicLinkErrorConditions.zip", 1, [("s", UInt32(796029061), nil)])
+        try check("TraversalAttack.zip", 1, [("../testTraversalAttackABC/EVIL_HERE", UInt32(0), nil)])
+        try check("PathTraversal.zip", 1, [("../../../../../../../../../../../tmp/test.txt", UInt32(2052117414), nil)])
+        try check("IncorrectHeaders.zip", 5, [("IncorrectHeaders/", UInt32(0), nil), ("IncorrectHeaders/Readme.txt", UInt32(1934726894), nil), ("__MACOSX/", UInt32(0), nil), ("__MACOSX/IncorrectHeaders/", UInt32(0), nil), ("__MACOSX/IncorrectHeaders/._Readme.txt", UInt32(3155744682), nil)])
+        try check("InvalidCompressionMethodErrorConditions.zip", 4, [(".DS_Store", UInt32(3825983351), nil), ("dir/", UInt32(0), nil), ("original", UInt32(2636372207), nil), ("symlink", UInt32(796029061), nil)])
     }
 }
 
@@ -283,4 +285,3 @@ extension Sequence where Element == UInt8 {
     public func sha512() -> SHA512.Digest { CryptoKit.SHA512.hash(data: Data(self)) }
 }
 #endif
-
