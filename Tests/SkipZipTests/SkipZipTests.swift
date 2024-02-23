@@ -187,7 +187,8 @@ final class SkipZipTests: XCTestCase {
             while true {
                 if let expectedEntries = expectedEntries, expectedEntries.count > entryIndex {
                     let (expectedName, crc32, expectedContents) = expectedEntries[entryIndex]
-                    XCTAssertEqual(crc32, try reader.currentEntryCRC32, "unexpected CRC32 for \(zipPath) #\(entryIndex)")
+                    let currentEntryCRC32 = try reader.currentEntryCRC32
+                    XCTAssertEqual(crc32, currentEntryCRC32, "unexpected CRC32 for \(zipPath) #\(entryIndex): \(crc32) vs. \(currentEntryCRC32)")
 
                     let currentEntryName = try reader.currentEntryName
                     XCTAssertEqual(expectedName, currentEntryName, "unexpected entry name for \(zipPath) #\(entryIndex) [size=\(currentEntryName?.count ?? -1)]: \(currentEntryName ?? "NONE")")

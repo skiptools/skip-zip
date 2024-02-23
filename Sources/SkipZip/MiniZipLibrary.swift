@@ -31,8 +31,9 @@ protocol ZipEntryInfo {
 
 
 #if !SKIP
-let is64Bit = Int.bitWidth == Int64.bitWidth
-let is32Bit = Int.bitWidth == Int32.bitWidth
+/// Whether to use the 32-bit or 64-bit zip function variants
+let is32Bit = false // Int.bitWidth == Int32.bitWidth
+let is64Bit = true // Int.bitWidth == Int64.bitWidth
 
 typealias zipFile = MiniZip.zipFile
 typealias unzFile = MiniZip.unzFile
@@ -56,8 +57,9 @@ extension unz_file_info64_ptr {
 }
 
 #else
-let is64Bit = com.sun.jna.Native.POINTER_SIZE == 8
-let is32Bit = com.sun.jna.Native.POINTER_SIZE == 4
+/// Whether to use the 32-bit or 64-bit zip function variants
+let is32Bit = false // com.sun.jna.Native.POINTER_SIZE == 4
+let is64Bit = true // com.sun.jna.Native.POINTER_SIZE == 8
 
 typealias zipFile = OpaquePointer
 typealias unzFile = OpaquePointer
@@ -67,14 +69,14 @@ typealias zip_fileinfo = OpaquePointer
 typealias unz_file_info_ptr = unz_file_info
 
 
-// SKIP INSERT: @com.sun.jna.Structure.FieldOrder("version", "version_needed", "flag", "compression_method", "dos_date", "tmu_date", "crc", "compressed_size", "uncompressed_size", "size_filename", "size_file_extra", "size_file_comment", "disk_num_start", "internal_fa", "external_fa", "disk_offset", "size_file_extra_internal")
+// SKIP INSERT: @com.sun.jna.Structure.FieldOrder("version", "version_needed", "flag", "compression_method", "dos_date", /* "tmu_date", */ "crc", "compressed_size", "uncompressed_size", "size_filename", "size_file_extra", "size_file_comment", "disk_num_start", "internal_fa", "external_fa", "disk_offset", "size_file_extra_internal")
 public final class unz_file_info : SkipFFIStructure {
     /* SKIP INSERT: @JvmField */ public var version: FFIUInt16 = 0 /* version made by 2 bytes */
     /* SKIP INSERT: @JvmField */ public var version_needed: FFIUInt16 = 0 /* version needed to extract 2 bytes */
     /* SKIP INSERT: @JvmField */ public var flag: FFIUInt16 = 0 /* general purpose bit flag 2 bytes */
     /* SKIP INSERT: @JvmField */ public var compression_method: FFIUInt16 = 0 /* compression method 2 bytes */
     /* SKIP INSERT: @JvmField */ public var dos_date: FFIUInt32 = 0 /* last mod file date in Dos fmt 4 bytes */
-    /* SKIP INSERT: @JvmField */ public var tmu_date: tm = tm()
+    // /* SKIP INSERT: @JvmField */ public var tmu_date: tm = tm()
     /* SKIP INSERT: @JvmField */ public var crc: FFIUInt32 = 0 /* crc-32 4 bytes */
     /* SKIP INSERT: @JvmField */ public var compressed_size: FFIUInt32 = 0 /* compressed size 8 bytes */
     /* SKIP INSERT: @JvmField */ public var uncompressed_size: FFIUInt32 = 0 /* uncompressed size 8 bytes */
@@ -93,14 +95,14 @@ public final class unz_file_info : SkipFFIStructure {
 // 64-bit structure for file info
 typealias unz_file_info64_ptr = unz_file_info64
 
-// SKIP INSERT: @com.sun.jna.Structure.FieldOrder("version", "version_needed", "flag", "compression_method", "dos_date", "tmu_date", "crc", "compressed_size", "uncompressed_size", "size_filename", "size_file_extra", "size_file_comment", "disk_num_start", "internal_fa", "external_fa", "disk_offset", "size_file_extra_internal")
+// SKIP INSERT: @com.sun.jna.Structure.FieldOrder("version", "version_needed", "flag", "compression_method", "dos_date", /* "tmu_date", */ "crc", "compressed_size", "uncompressed_size", "size_filename", "size_file_extra", "size_file_comment", "disk_num_start", "internal_fa", "external_fa", "disk_offset", "size_file_extra_internal")
 public final class unz_file_info64 : SkipFFIStructure {
     /* SKIP INSERT: @JvmField */ public var version: FFIUInt16 = 0 /* version made by 2 bytes */
     /* SKIP INSERT: @JvmField */ public var version_needed: FFIUInt16 = 0 /* version needed to extract 2 bytes */
     /* SKIP INSERT: @JvmField */ public var flag: FFIUInt16 = 0 /* general purpose bit flag 2 bytes */
     /* SKIP INSERT: @JvmField */ public var compression_method: FFIUInt16 = 0 /* compression method 2 bytes */
     /* SKIP INSERT: @JvmField */ public var dos_date: FFIUInt32 = 0 /* last mod file date in Dos fmt 4 bytes */
-    /* SKIP INSERT: @JvmField */ public var tmu_date: tm = tm()
+    // /* SKIP INSERT: @JvmField */ public var tmu_date: tm = tm()
     /* SKIP INSERT: @JvmField */ public var crc: FFIUInt32 = 0 /* crc-32 4 bytes */
     /* SKIP INSERT: @JvmField */ public var compressed_size: FFIUInt64 = 0 /* compressed size 8 bytes */
     /* SKIP INSERT: @JvmField */ public var uncompressed_size: FFIUInt64 = 0 /* uncompressed size 8 bytes */
