@@ -3,19 +3,9 @@ SkipZip is a Skip framework that provides support for creating and extracting zi
 
 It is currently a work in progress, and has only limited functionality.
 
-
 To deflate (i.e., compress) data, import `SkipZip` to get the `Data.deflate()`
 extension function. On iOS, this uses the zlib C API `zipZlib`,
 and on Kotlin/Java it uses the `java.util.zip.Deflater` API.
-
-Example:
-
-```swift
-import SkipZip
-
-let data = Data()
-
-
 
 ## Building
 
