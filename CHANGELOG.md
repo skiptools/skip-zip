@@ -1,3 +1,23 @@
+## 0.4.0
+
+Released 2024-08-15
+
+  - Update README.md
+  - ci: update workflow actions location
+  - Workaround CI Android emulator issues
+  - Test cases for 32-bit Android emulator
+  - Add 32-bit minizip function variants
+  - Work around 32-bit Android emulator issues
+  - Use 32-bit minizip variants for older Android emulators
+  - Remove tmu_date due to size differences of struct tm on different Android versions
+  - Add checksum tests
+  - Add checksum tests
+  - Skip some failing tests on CI Android emulator
+  - Update to use new SkipFFI API
+  - Read data from zip file
+  - Add sample zip files for testing
+  - Add sample zip files for testing
+
 ## 0.3.0
 
 Released 2024-02-20
