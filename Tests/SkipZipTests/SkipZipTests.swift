@@ -1,12 +1,11 @@
 // Copyright 2023–2025 Skip
 // SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
 import XCTest
-import OSLog
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
 @testable import SkipZip
-
-let logger: Logger = Logger(subsystem: "SkipZip", category: "Tests")
 
 final class SkipZipTests: XCTestCase {
     func testArchive() throws {
@@ -160,7 +159,11 @@ final class SkipZipTests: XCTestCase {
     }
 
     func checksum(_ path: String) throws -> String {
+        #if SKIP || canImport(CryptoKit)
         try Data(contentsOf: URL(fileURLWithPath: path)).sha256().hex()
+        #else
+        throw XCTSkip("CryptoKit unavailable")
+        #endif
     }
 
     func fileSize(_ path: String) throws -> Int64? {
@@ -169,7 +172,7 @@ final class SkipZipTests: XCTestCase {
 
     func tmpzip(named: String? = nil) -> String {
         let path = URL.temporaryDirectory.path + "/" + (named ?? "SkipZipTests-\(UUID().uuidString).zip")
-        logger.log("testing zip archive \(named ?? "NONE") at: \(path)")
+        //logger.log("testing zip archive \(named ?? "NONE") at: \(path)")
         return path
     }
 
@@ -273,6 +276,7 @@ final class SkipZipTests: XCTestCase {
 }
 
 #if !SKIP
+#if canImport(CryptoKit)
 /// A sequence that both `Data` and `String.UTF8View` conform to.
 extension Sequence where Element == UInt8 {
     public func hex() -> String { map { String(format: "%02x", $0) }.joined() }
@@ -281,4 +285,5 @@ extension Sequence where Element == UInt8 {
     public func sha384() -> SHA384.Digest { CryptoKit.SHA384.hash(data: Data(self)) }
     public func sha512() -> SHA512.Digest { CryptoKit.SHA512.hash(data: Data(self)) }
 }
+#endif
 #endif

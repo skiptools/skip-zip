@@ -4,10 +4,13 @@ import Swift
 import Foundation
 #if SKIP
 import SkipFFI
+#elseif canImport(CZLib)
+import CZLib
 #else
 import zlib
 #endif
 
+#if canImport(zlib)
 /// `ZlibLibrary` is an encapsulation of `libz` functions and structures.
 public final class ZlibLibrary {
     public typealias z_streamp = UnsafeMutablePointer<z_stream> // zlib.z_streamp
@@ -450,4 +453,4 @@ public final class ZlibLibrary {
     // SKIP EXTERN
     //public func gzvprintf(_ file: gzFile!, _ format: UnsafePointer<CChar>!, _ va: CVaListPointer) -> Int32 { return zlib.gzvprintf(file, format, va) }
 }
-
+#endif
