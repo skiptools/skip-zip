@@ -3,7 +3,6 @@
 import Foundation
 import SkipFFI
 
-//private let zlib = ZlibLibrary()
 private let minizip = MiniZipLibrary()
 
 /// Checks the return code to ensure it is `ZIP_OK`, throwing an error otherwise

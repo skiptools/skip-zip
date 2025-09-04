@@ -15,12 +15,10 @@ let package = Package(
         .package(url: "https://source.skip.tools/skip-ffi.git", from: "1.0.0"),
     ],
     targets: [
-        .target(name: "CZLib"),
         .target(name: "SkipZip", dependencies: [
             "MiniZip",
             .product(name: "SkipFoundation", package: "skip-foundation"),
             .product(name: "SkipFFI", package: "skip-ffi"),
-            .target(name: "CZLib", condition: .when(platforms: [.linux, .android])),
         ], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "SkipZipTests", dependencies: [
             "SkipZip",
