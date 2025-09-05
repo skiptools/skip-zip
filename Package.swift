@@ -18,7 +18,7 @@ let package = Package(
         .target(name: "SkipZip", dependencies: [
             "MiniZip",
             .product(name: "SkipFoundation", package: "skip-foundation"),
-            .product(name: "SkipFFI", package: "skip-ffi")
+            .product(name: "SkipFFI", package: "skip-ffi"),
         ], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "SkipZipTests", dependencies: [
             "SkipZip",
@@ -31,6 +31,7 @@ let package = Package(
             .define("ZLIB_COMPAT"),
             .define("HAVE_ZLIB"),
             .define("MZ_ZIP_NO_CRYPTO"),
-        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        ], linkerSettings: [.linkedLibrary("z", .when(platforms: [.linux, .android]))],
+            plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]
 )

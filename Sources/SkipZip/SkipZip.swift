@@ -3,7 +3,6 @@
 import Foundation
 import SkipFFI
 
-private let zlib = ZlibLibrary()
 private let minizip = MiniZipLibrary()
 
 /// Checks the return code to ensure it is `ZIP_OK`, throwing an error otherwise
@@ -109,7 +108,7 @@ public final class ZipReader {
             }
 
             return try withFFIStringPointer(size: Int(len)) { nameBuffer in
-                is64Bit 
+                return is64Bit
                 ? try check(minizip.unzGetCurrentFileInfo64(file: file, pfile_info: nil, filename: nameBuffer, filename_size: FFIUInt(len), extrafield: nil, extrafield_size: 0, comment: nil, comment_size: 0))
                 : try check(minizip.unzGetCurrentFileInfo(file: file, pfile_info: nil, filename: nameBuffer, filename_size: FFIUInt(len), extrafield: nil, extrafield_size: 0, comment: nil, comment_size: 0))
             }
