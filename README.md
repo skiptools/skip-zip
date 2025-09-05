@@ -2,11 +2,10 @@
 
 SkipZip is a Skip framework that provides support for creating and extracting zip archives.
 
-It is currently a work in progress, and has only limited functionality.
+It uses a vendored version of the MiniZip library. This can be used natively through Skip Fuse,
+or using [SkipFFI](https://source.skip.tools/skip-ffi/) in Skip Lite 
+to provide the bridge from Kotlin.
 
-To deflate (i.e., compress) data, import `SkipZip` to get the `Data.deflate()`
-extension function. On iOS, this uses the zlib C API `zipZlib`,
-and on Kotlin/Java it uses the `java.util.zip.Deflater` API.
 
 ## Building
 
