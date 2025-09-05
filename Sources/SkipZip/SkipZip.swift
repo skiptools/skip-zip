@@ -33,7 +33,7 @@ public final class ZipReader {
     }
 
     /// Move to the next file in the zip file, returning false if the zip file is at the end
-    public func next() throws -> Bool {
+    @discardableResult public func next() throws -> Bool {
         let res = minizip.unzGoToNextFile(file: file)
         if res == -100 { // MZ_END_OF_LIST
             return false
@@ -151,22 +151,43 @@ public final class ZipReader {
             }
         }
     }
+
+    public var currentEntryIsSymbolicLink: Bool {
+        get throws {
+            try self.currentEntryInfo.isSymbolicLink
+        }
+    }
+
+    public var currentEntryIsDirectory: Bool {
+        get throws {
+            try self.currentEntryInfo.isDirectory
+        }
+    }
 }
 
 
 /// A zip file writer
 public final class ZipWriter {
     let file: zipFile
+    var closed: Bool
 
     public init?(path: String, append: Bool) {
         guard let file = minizip.zipOpenArch(path: path, append: append ? 1 : 0) else {
             return nil
         }
         self.file = file
+        self.closed = false
     }
-    
+
+    deinit {
+        try? close()
+    }
+
     public func close() throws {
-        try check(minizip.zipCloseArch(file: file, comment: nil))
+        if !closed {
+            try check(minizip.zipCloseArch(file: file, comment: nil))
+            closed = true
+        }
     }
 
     /// Adds the given data to an open zip file with the specified compression method
@@ -198,11 +219,23 @@ public struct ZipError : Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self.code {
-        case -102: return "UNZ_PARAMERROR"
-        case -103: return "UNZ_BADZIPFILE"
-        case -104: return "UNZ_INTERNALERROR"
-        case -105: return "UNZ_CRCERROR"
-        case -106: return "UNZ_BADPASSWORD"
+        case -102: return "MZ_PARAM_ERROR"
+        case -103: return "MZ_FORMAT_ERROR"
+        case -104: return "MZ_INTERNAL_ERROR"
+        case -105: return "MZ_CRC_ERROR"
+        case -106: return "MZ_CRYPT_ERROR"
+        case -107: return "MZ_EXIST_ERROR"
+        case -108: return "MZ_PASSWORD_ERROR"
+        case -109: return "MZ_SUPPORT_ERROR"
+        case -110: return "MZ_HASH_ERROR"
+        case -111: return "MZ_OPEN_ERROR"
+        case -112: return "MZ_CLOSE_ERROR"
+        case -113: return "MZ_SEEK_ERROR"
+        case -114: return "MZ_TELL_ERROR"
+        case -115: return "MZ_READ_ERROR"
+        case -116: return "MZ_WRITE_ERROR"
+        case -117: return "MZ_SIGN_ERROR"
+        case -118: return "MZ_SYMLINK_ERROR"
         default: return "Unknown error (\(self.code))"
         }
     }

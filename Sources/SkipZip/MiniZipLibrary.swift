@@ -23,7 +23,7 @@ protocol ZipEntryInfo {
     var crc32: UInt32 { get }
     var compressedSize: UInt64 { get }
     var uncompressedSize: UInt64 { get }
-
+    var fileAttributes: UInt32 { get }
 }
 
 
@@ -140,12 +140,25 @@ public final class tm : SkipFFIStructure {
 
 #endif
 
+extension ZipEntryInfo {
+    var isSymbolicLink: Bool {
+        // TODO: we may need to handle Windows-created archives special with mz_zip_attrib_convert
+        return (fileAttributes & UInt32(170000)) == UInt32(120000) /* S_ISLNK */
+    }
+
+    var isDirectory: Bool {
+        // TODO: we may need to handle Windows-created archives special with mz_zip_attrib_convert
+        return (fileAttributes & UInt32(170000)) == UInt32(40000) /* S_ISDIR */
+    }
+}
+
 extension unz_file_info : ZipEntryInfo {
     var filenameSize: UInt16 { UInt16(size_filename) }
     var commentSize: UInt16 { UInt16(size_file_comment) }
     var crc32: UInt32 { UInt32(crc) }
     var compressedSize: UInt64 { UInt64(compressed_size) }
     var uncompressedSize: UInt64 { UInt64(uncompressed_size) }
+    var fileAttributes: UInt32 { UInt32(external_fa) }
 }
 
 extension unz_file_info64 : ZipEntryInfo {
@@ -154,6 +167,7 @@ extension unz_file_info64 : ZipEntryInfo {
     var crc32: UInt32 { UInt32(crc) }
     var compressedSize: UInt64 { UInt64(compressed_size) }
     var uncompressedSize: UInt64 { UInt64(uncompressed_size) }
+    var fileAttributes: UInt32 { UInt32(external_fa) }
 }
 
 
