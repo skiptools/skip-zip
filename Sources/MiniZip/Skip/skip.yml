@@ -25,3 +25,4 @@ build:
             - block: 'cmake'
               contents:
                 - 'path = file("ext/CMakeLists.txt")'
+                - 'arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")'
