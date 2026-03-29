@@ -395,6 +395,15 @@ ZEXPORT int     unzeof(unzFile file);
 ZEXPORT void*   unzGetStream(unzFile file);
 
 /***************************************************************************/
+/* Raw deflate decompression */
+
+/* Decompresses raw DEFLATE data (no zlib/gzip header).
+   Returns 0 (Z_OK) on success, or a negative zlib error code on failure.
+   destLen is updated with the actual decompressed size. */
+ZEXPORT int     mz_inflate_raw(const void *source, unsigned long sourceLen,
+                    void *dest, unsigned long *destLen);
+
+/***************************************************************************/
 
 #ifdef __cplusplus
 }

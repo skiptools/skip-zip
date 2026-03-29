@@ -1,9 +1,20 @@
-// SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
+// SPDX-License-Identifier: MPL-2.0
 import Foundation
 import SkipFFI
 #if !SKIP
 import MiniZip
 #endif
+
+/// The shared interface for interacting with MiniZip
+let minizip = MiniZipLibrary()
+
+/// Checks the return code to ensure it is `ZIP_OK`, throwing an error otherwise
+func check(_ status: Int32) throws {
+    if status != 0 {
+        throw ZipError(code: status)
+    }
+}
+
 
 /// Information about a zip file entry, abstracted across 32-bit and 64-bit systems
 protocol ZipEntryInfo {
