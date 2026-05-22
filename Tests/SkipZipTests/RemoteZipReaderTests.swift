@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: MPL-2.0
 import XCTest
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 @testable import SkipZip
 
 #if !SKIP

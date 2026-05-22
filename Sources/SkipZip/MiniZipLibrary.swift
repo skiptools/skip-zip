@@ -1,3 +1,4 @@
+// Copyright 2023–2026 Skip
 // SPDX-License-Identifier: MPL-2.0
 import Foundation
 import SkipFFI
@@ -183,7 +184,7 @@ extension unz_file_info64 : ZipEntryInfo {
 
 
 /// `MiniZipLibrary` is a Swift encapsulation of the MiniZip library
-internal final class MiniZipLibrary {
+internal final class MiniZipLibrary: Sendable {
     /// The singleton library instance, registered using JNA to map the Kotlin functions to their native equivalents
     static let instance = registerNatives(MiniZipLibrary(), frameworkName: "SkipZip", libraryName: "minizip")
 
