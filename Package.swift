@@ -9,10 +9,10 @@ let package = Package(
         .library(name: "SkipZip", type: .dynamic, targets: ["SkipZip"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/skiptools/skip.git", from: "1.1.11"),
-        .package(url: "https://github.com/skiptools/skip-unit.git", from: "1.0.1"),
-        .package(url: "https://github.com/skiptools/skip-foundation.git", from: "1.1.11"),
-        .package(url: "https://github.com/skiptools/skip-ffi.git", from: "1.0.0"),
+        .package(url: "https://github.com/skiptools/skip.git", from: "1.9.8"),
+        .package(url: "https://github.com/skiptools/skip-unit.git", from: "1.7.1"),
+        .package(url: "https://github.com/skiptools/skip-foundation.git", from: "1.4.4"),
+        .package(url: "https://github.com/skiptools/skip-ffi.git", from: "1.2.3"),
     ],
     targets: [
         .target(name: "SkipZip", dependencies: [
