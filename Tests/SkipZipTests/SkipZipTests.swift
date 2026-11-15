@@ -53,8 +53,9 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "some_data.dat", data: Data(), compression: 0)
             try writer.close()
             XCTAssertEqual(Int64(188), try fileSize(path))
-            XCTAssertEqual(UInt32(2557386408), try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
+            try reader.first()
+            XCTAssertNil(try reader.currentEntryData)
             try reader.close()
         }
 
@@ -65,8 +66,9 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "some_data.dat", data: String(repeating: "X", count: 100).data(using: .utf8)!, compression: 0)
             try writer.close()
             XCTAssertEqual(Int64(288), try fileSize(path))
-            XCTAssertEqual(UInt32(553555375), try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
+            try reader.first()
+            XCTAssertEqual(String(repeating: "X", count: 100).data(using: .utf8)!, try reader.currentEntryData)
             try reader.close()
         }
 
@@ -76,8 +78,9 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "/path/to/some_data.dat", data: String(repeating: "X", count: 100).data(using: .utf8)!, compression: 0)
             try writer.close()
             XCTAssertEqual(Int64(306), try fileSize(path))
-            XCTAssertEqual(UInt32(1671776438), try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
+            try reader.first()
+            XCTAssertEqual(String(repeating: "X", count: 100).data(using: .utf8)!, try reader.currentEntryData)
             try reader.close()
         }
 
@@ -87,10 +90,10 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "/path/to/some_data.dat", data: String(repeating: "Z", count: 1024).data(using: .utf8)!, compression: 5)
             try writer.close()
             XCTAssertEqual(Int64(217), try fileSize(path))
-            XCTAssertEqual(UInt32(1979575218), try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
             try reader.first()
             try XCTAssertEqual("/path/to/some_data.dat", reader.currentEntryName)
+            XCTAssertEqual(String(repeating: "Z", count: 1024).data(using: .utf8)!, try reader.currentEntryData)
             try reader.close()
         }
 
@@ -99,10 +102,10 @@ final class SkipZipTests: XCTestCase {
             let writer = try XCTUnwrap(ZipWriter(path: path, append: false))
             try writer.add(path: "/path/to////some_data.dat", data: String(repeating: "R", count: 1024).data(using: .utf8)!, comment: "Some comment", compression: 7)
             try writer.close()
-            XCTAssertEqual(UInt32(950933042), try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
             try reader.first()
             try XCTAssertEqual("/path/to////some_data.dat", reader.currentEntryName)
+            XCTAssertEqual(String(repeating: "R", count: 1024).data(using: .utf8)!, try reader.currentEntryData)
             try reader.close()
         }
 
@@ -112,10 +115,10 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "/path/to/some_data.dat", data: String(repeating: "官", count: 1024 * 1024).data(using: .utf8)!, compression: 9)
             try writer.close()
             XCTAssertEqual(Int64(3277), try fileSize(path))
-            XCTAssertEqual(UInt32(4256709787), try checksum(path))
             let reader = try XCTUnwrap(ZipReader(path: path))
             try reader.first()
             try XCTAssertEqual("/path/to/some_data.dat", reader.currentEntryName)
+            XCTAssertEqual(String(repeating: "官", count: 1024 * 1024).data(using: .utf8)!, try reader.currentEntryData)
             try reader.close()
         }
 
@@ -126,7 +129,6 @@ final class SkipZipTests: XCTestCase {
             try writer.add(path: "//////some_text_with_comment", data: "QRS".data(using: .utf8)!, comment: "This is a comment", compression: 5)
             try writer.add(path: "/path/to/some_data.dat", data: String(repeating: "X", count: 1024 * 1024).data(using: .utf8)!, compression: 9)
             try writer.close()
-            XCTAssertEqual(UInt32(2109331844), try checksum(path))
             XCTAssertEqual(Int64(1619), try fileSize(path))
 
             let reader = try XCTUnwrap(ZipReader(path: path))
@@ -135,6 +137,7 @@ final class SkipZipTests: XCTestCase {
             try reader.first()
             XCTAssertEqual(Int64(1323), reader.currentOffset)
             XCTAssertEqual("some_file", try reader.currentEntryName)
+            XCTAssertEqual("ABC".data(using: .utf8)!, try reader.currentEntryData)
             XCTAssertEqual(nil, try reader.currentEntryComment)
 
             XCTAssertTrue(try reader.next())
@@ -147,6 +150,7 @@ final class SkipZipTests: XCTestCase {
 
             XCTAssertTrue(try reader.next())
             XCTAssertEqual(Int64(1509), reader.currentOffset)
+            XCTAssertEqual(String(repeating: "X", count: 1024 * 1024).data(using: .utf8)!, try reader.currentEntryData)
             XCTAssertFalse(try reader.next())
             XCTAssertEqual(Int64(1597), reader.currentOffset)
             XCTAssertFalse(try reader.next())
