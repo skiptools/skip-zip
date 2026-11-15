@@ -463,6 +463,7 @@ int zipOpenNewFileInZip5(zipFile file, const char *filename, const zip_fileinfo 
         return ZIP_PARAMERROR;
 
     memset(&file_info, 0, sizeof(file_info));
+    file_info.modified_date = time(NULL);
 
     if (zipfi) {
         uint64_t dos_date = 0;
