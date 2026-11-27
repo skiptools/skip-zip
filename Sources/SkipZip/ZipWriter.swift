@@ -20,9 +20,15 @@ public final class ZipWriter {
     }
 
     public func close() throws {
-        if !closed {
+        try closeArchive {
             try check(minizip.zipCloseArch(file: file, comment: nil))
+        }
+    }
+
+    func closeArchive(_ close: () throws -> Void) throws {
+        if !closed {
             closed = true
+            try close()
         }
     }
 

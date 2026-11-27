@@ -175,6 +175,34 @@ final class SkipZipTests: XCTestCase {
         }
     }
 
+    func testZipWriterCloseAfterFailure() throws {
+        let path = tmpzip()
+        defer { try? FileManager.default.removeItem(atPath: path) }
+
+        let writer = try XCTUnwrap(ZipWriter(path: path, append: false))
+        var closeCount = 0
+
+        var errorCode: Int32?
+        do {
+            try writer.closeArchive {
+                closeCount += 1
+                try check(minizip.zipCloseArch(file: writer.file, comment: nil))
+                throw ZipError(code: -1)
+            }
+        } catch let error as ZipError {
+            errorCode = error.code
+        }
+
+        let closedAfterFailure = writer.closed
+        writer.closed = true
+        XCTAssertTrue(closedAfterFailure)
+        XCTAssertEqual(errorCode, -1)
+
+        try writer.closeArchive { closeCount += 1 }
+        try writer.close()
+        XCTAssertEqual(closeCount, 1)
+    }
+
     func fileSize(_ path: String) throws -> Int64? {
         try FileManager.default.attributesOfItem(atPath: path)[FileAttributeKey.size] as? Int64
     }
